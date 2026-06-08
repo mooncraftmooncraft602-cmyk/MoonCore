@@ -226,7 +226,12 @@ public final class PaintSession {
         if (p == null) return;
         if (worldPick) { pickFromWorld(p); return; }
         int[] t = aim(p);
-        if (t == null) return;
+        if (t == null) {
+            // Pas de visée valide (regard franchement ailleurs) → on peint quand même le
+            // dernier pixel survolé, pour qu'un clic ne soit jamais « perdu ».
+            if (cursorX < 0 || cursorY < 0) return;
+            t = new int[]{cursorX, cursorY};
+        }
         cursorX = t[0]; cursorY = t[1];
         int x = t[0], y = t[1];
         switch (currentTool) {
@@ -308,7 +313,7 @@ public final class PaintSession {
     }
 
     private static double clampSensitivity(double v) {
-        return Math.max(0.5, Math.min(3.0, v));
+        return Math.max(0.3, Math.min(4.0, v)); // bas = curseur lent/précis, haut = rapide
     }
 
     private double defaultSensitivity() {

@@ -12,11 +12,12 @@ import org.bukkit.util.Vector;
  */
 public final class PaintRaytracer {
 
-    private static final double MAX_DIST = 6.0;
-    // Marge TRÈS généreuse : viser au-delà de la toile peint quand même le pixel de
-    // bord/coin le plus proche (clamp). N'affecte QUE les texels extérieurs (la précision
-    // au centre reste intacte) → rend les coins/bords faciles à atteindre.
-    private static final double MARGIN = 1.0;
+    private static final double MAX_DIST = 8.0;
+    // Zone de capture ÉNORME : tant qu'on regarde grosso modo vers la toile, on prend le
+    // pixel le plus proche (clamp aux bords). Viser hors du cadre peint donc quand même le
+    // bord/coin — plus besoin de viser pile dedans, et un clic « à côté » fonctionne. On ne
+    // renvoie null QUE si le joueur regarde franchement ailleurs (au-delà de REJECT).
+    private static final double REJECT = 4.0;
     // La map d'un item frame est rendue sur la FACE du bloc (≈0,5 vers le joueur), PAS au
     // centre du bloc. On décale donc le plan d'intersection le long de la normale pour qu'il
     // coïncide avec la toile VISIBLE — sinon parallaxe : on doit viser hors du cadre pour
@@ -54,8 +55,10 @@ public final class PaintRaytracer {
         double gain = sensitivity <= 0 ? 1.0 : sensitivity;
         double u = rel.dot(uAxis) * gain;   // attendu dans [-0.5, 0.5] (×gain)
         double v = rel.getY() * gain;       // vAxis = +Y
-        if (Math.abs(u) > 0.5 + MARGIN || Math.abs(v) > 0.5 + MARGIN) return null; // hors toile
+        if (Math.abs(u) > 0.5 + REJECT || Math.abs(v) > 0.5 + REJECT) return null; // regarde ailleurs
 
+        // Clamp systématique → viser un peu hors du cadre sélectionne le pixel de bord le plus
+        // proche (les bords/coins deviennent triviaux, indépendamment de la sensibilité).
         int x = clamp((int) Math.floor((u + 0.5) * size), size);
         int y = clamp((int) Math.floor((0.5 - v) * size), size);
         return new int[]{x, y};
