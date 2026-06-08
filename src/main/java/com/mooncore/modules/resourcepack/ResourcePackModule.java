@@ -191,17 +191,32 @@ public final class ResourcePackModule extends AbstractModule implements Resource
     }
 
     @Override
-    public String url() { return url; }
+    public String url() { return versionedUrl(); }
+
+    /**
+     * URL versionnée par le SHA-1 du pack (ex. {@code .../pack.zip?v=ab12cd34}). Indispensable :
+     * le client dérive l'UUID du pack de l'URL et met en cache par UUID/hash. Sans changement
+     * d'URL, après un rebuild il considère « déjà ce pack » et NE re-télécharge PAS → la texture
+     * ne se met pas à jour. Changer le {@code ?v=} à chaque rebuild force la ré-application.
+     * (Le serveur HTTP route sur le chemin {@code /pack.zip} et ignore la query → toujours servi.)
+     */
+    private String versionedUrl() {
+        if (url == null) return null;
+        if (sha1 == null) return url;
+        String v = PackAssembler.hex(sha1);
+        return url + "?v=" + (v.length() > 12 ? v.substring(0, 12) : v);
+    }
 
     // ---- envoi ----
 
     /** Envoie le pack forcé à un joueur Java (ignore Bedrock). */
     @SuppressWarnings("deprecation") // overload (url,hash,force) = le plus portable entre versions
     public void send(Player p) {
-        if (url == null || sha1 == null) return;
+        String u = versionedUrl();
+        if (u == null || sha1 == null) return;
         if (Compat.isBedrock(p)) return; // pack Java non applicable via Geyser
         try {
-            p.setResourcePack(url, sha1, force);
+            p.setResourcePack(u, sha1, force);
         } catch (Throwable t) {
             log().warn("[ResourcePack] Envoi échoué à " + p.getName() + " : " + t.getMessage());
         }
