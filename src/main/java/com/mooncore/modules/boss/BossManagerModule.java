@@ -452,6 +452,30 @@ public final class BossManagerModule extends AbstractModule {
         return updated != null;
     }
 
+    public boolean setField(String bossId, String key, Object value) {
+        String id = bossId == null ? "" : bossId.toLowerCase(Locale.ROOT);
+        if (!registry.containsKey(id)) return false;
+        File src = definitionFiles.get(id);
+        if (src == null) return false;
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(src);
+        String path = "bosses." + id;
+        if (!yml.contains(path)) return false;
+        yml.set(path + "." + key, value);
+        try {
+            yml.save(src);
+        } catch (java.io.IOException e) {
+            log().error("Échec d'écriture du boss " + id, e);
+            return false;
+        }
+        BossDefinition updated = parseBoss(id, yml.getConfigurationSection(path));
+        if (updated != null) registry.put(id, updated);
+        return updated != null;
+    }
+
+    public boolean setPhases(String bossId, Map<String, Object> phases) {
+        return setField(bossId, "phases", phases);
+    }
+
     public static int textureModelData(String bossId) {
         int h = Math.floorMod((bossId == null ? "boss" : bossId.toLowerCase(Locale.ROOT)).hashCode(), 100000);
         return 780000 + h;
