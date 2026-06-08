@@ -5,6 +5,7 @@
 #  capacités   : SUMMON, HEAL, POISON, IGNITE, EXPLODE, AOE_DAMAGE, TELEPORT, DASH, SHIELD
 #                magnitude : sens dépend du type (dégâts, durée en ticks, PV, force…)
 #  loot-reward : id d'une récompense (RewardManager) pour le meilleur attaquant
+#  texture-key : optionnel, PNG dans boss-textures/<clé>.png, généré via /moon boss paint <id>
 # =====================================================================
 
 bosses:
@@ -15,6 +16,7 @@ bosses:
     damage: 12
     speed: 0.28
     armor: 10
+    # texture-key: warlord
     loot-reward: first-boss-kill
     progression-xp: 3000
     bar-color: RED

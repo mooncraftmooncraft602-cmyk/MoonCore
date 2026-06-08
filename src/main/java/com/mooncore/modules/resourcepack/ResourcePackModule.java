@@ -125,10 +125,16 @@ public final class ResourcePackModule extends AbstractModule implements Resource
                     cb != null ? cb.rawDefs() : Map.of();
             File blockTex = cb != null ? cb.store().texturesFolder() : null;
 
-            backupTextures(texturesSrc, blockTex); // filet de sécurité avant ré-assemblage
+            var boss = plugin().moduleManager().get(com.mooncore.modules.boss.BossManagerModule.class);
+            Map<String, com.mooncore.modules.boss.BossDefinition> bossDefs =
+                    boss != null ? boss.rawDefs() : Map.of();
+            File bossTex = boss != null ? boss.texturesFolder() : null;
+
+            backupTextures(texturesSrc, blockTex, bossTex); // filet de sécurité avant ré-assemblage
 
             PackAssembler.Built built = new PackAssembler(log())
-                    .assemble(defs, buildDir, texturesSrc, packSources, packZip, blockDefs, blockTex);
+                    .assemble(defs, buildDir, texturesSrc, packSources, packZip,
+                            blockDefs, blockTex, bossDefs, bossTex);
             this.sha1 = built.sha1();
             log().info("[ResourcePack] Pack assemblé : " + built.models() + " modèle(s), "
                     + (packZip.length() / 1024) + " Ko, SHA-1=" + PackAssembler.hex(built.sha1()).substring(0, 12) + "…");
@@ -139,16 +145,17 @@ public final class ResourcePackModule extends AbstractModule implements Resource
 
     private static final int MAX_BACKUPS = 12;
 
-    /** Snapshot des textures sources (items + blocs) avant chaque rebuild → resourcepack-backups/. */
-    private void backupTextures(File itemsSrc, File blockSrc) {
+    /** Snapshot des textures sources (items + blocs + boss) avant chaque rebuild → resourcepack-backups/. */
+    private void backupTextures(File itemsSrc, File blockSrc, File bossSrc) {
         try {
-            int items = pngCount(itemsSrc), blocks = pngCount(blockSrc);
-            if (items + blocks == 0) return; // rien à sauvegarder
+            int items = pngCount(itemsSrc), blocks = pngCount(blockSrc), bosses = pngCount(bossSrc);
+            if (items + blocks + bosses == 0) return; // rien à sauvegarder
             File root = new File(plugin().getDataFolder(), "resourcepack-backups");
             root.mkdirs();
             File snap = new File(root, String.valueOf(System.currentTimeMillis()));
             if (itemsSrc != null && itemsSrc.isDirectory()) copyPngs(itemsSrc, new File(snap, "items"));
             if (blockSrc != null && blockSrc.isDirectory()) copyPngs(blockSrc, new File(snap, "blocks"));
+            if (bossSrc != null && bossSrc.isDirectory()) copyPngs(bossSrc, new File(snap, "bosses"));
             rotateBackups(root);
         } catch (Exception e) {
             log().warn("[ResourcePack] Backup des textures échoué : " + e.getMessage());

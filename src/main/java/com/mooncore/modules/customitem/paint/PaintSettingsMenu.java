@@ -53,7 +53,15 @@ public final class PaintSettingsMenu implements InventoryHolder {
         inv.setItem(40, btn(Material.NAME_TAG, "<aqua>Couleur hex…", "<gray>saisir #RRGGBB"));
         inv.setItem(41, btn(Material.NETHER_STAR, "<gradient:#8a2be2:#c77dff>Assistant avancé</gradient>",
                 "<gray>formes, transformations, effets, IA"));
-        inv.setItem(42, pane); inv.setItem(43, pane); inv.setItem(44, pane);
+        inv.setItem(42, btn(Material.TARGET, "<aqua>Précision pixel",
+                "<gray>coordonnées, nudges 1 px, peindre sans viser"));
+        inv.setItem(43, btn(Material.SPYGLASS, "<aqua>Zoom toile : x" + session.zoom(),
+                "<gray>grossit vraiment la zone visée",
+                "<dark_gray>clic = zoom + · clic droit = zoom -"));
+        inv.setItem(44, btn(session.cursorPinned() ? Material.REDSTONE_TORCH : Material.LEVER,
+                "<aqua>Curseur : " + (session.cursorPinned() ? "<light_purple>verrouillé" : "<green>libre"),
+                "<gray>clic = verrouiller/libérer",
+                "<dark_gray>clic droit = recentrer la loupe"));
 
         // Contrôles (45..53).
         inv.setItem(45, btn(Material.BRUSH, "<yellow>Brosse : " + session.brush(), "<dark_gray>clic = +1"));
@@ -113,6 +121,14 @@ public final class PaintSettingsMenu implements InventoryHolder {
             case 37 -> session.recolorToCurrent();
             case 38 -> { p.closeInventory(); session.enterWorldPick(); }
             case 41 -> PaintAssistantMenu.open(session);
+            case 42 -> PaintPrecisionMenu.open(session);
+            case 43 -> { session.cycleZoom(rightClick); rebuild(); }
+            case 44 -> {
+                if (rightClick) session.focusViewOnCursor();
+                else if (session.cursorPinned()) session.unpinCursor();
+                else session.pinCursor(Math.max(0, session.cursorX()), Math.max(0, session.cursorY()));
+                rebuild();
+            }
             case 39 -> { page = (page + 1) % PAGES; rebuild(); }
             case 40 -> {
                 p.closeInventory();

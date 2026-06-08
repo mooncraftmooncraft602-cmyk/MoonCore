@@ -40,6 +40,7 @@ public final class PaintListener implements Listener {
         if (!e.isSneaking()) return;
         PaintSession s = manager.get(e.getPlayer().getUniqueId());
         if (s != null && s.worldPick()) { s.exitWorldPick(); e.getPlayer().sendActionBar(com.mooncore.util.Text.mm("<gray>Pipette annulée")); }
+        else if (s != null && s.cursorPinned()) s.unpinCursor();
     }
 
     /** Protège les blocs du monde tant qu'une session d'édition est ouverte. */
@@ -118,5 +119,13 @@ public final class PaintListener implements Listener {
         e.setCancelled(true);
         if (e.getClickedInventory() == null || !e.getClickedInventory().equals(e.getView().getTopInventory())) return;
         if (e.getWhoClicked() instanceof Player p) menu.click(p, e.getRawSlot());
+    }
+
+    @EventHandler
+    public void onPrecisionClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof PaintPrecisionMenu menu)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() == null || !e.getClickedInventory().equals(e.getView().getTopInventory())) return;
+        if (e.getWhoClicked() instanceof Player p) menu.click(p, e.getRawSlot(), e.isRightClick());
     }
 }

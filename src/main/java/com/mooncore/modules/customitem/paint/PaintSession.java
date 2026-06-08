@@ -52,6 +52,9 @@ public final class PaintSession {
     private double sensitivity = 1.0;      // gain regard→toile (réglable dans le livre)
     private volatile boolean dirty = true; // déclenche un renvoi de la map
     private boolean worldPick = false;     // pipette « monde » : viser un bloc autour
+    private boolean cursorPinned = false;  // curseur posé manuellement (coordonnées / menu précision)
+    private int zoom = 1;                  // 1 = toile entière, 2/4/8 = loupe sur une zone
+    private int viewCenterX, viewCenterY;  // centre de la zone affichée quand zoom > 1
     private Runnable onClose; // exécuté à la fermeture (ex. rouvrir le menu d'édition)
 
     public PaintSession(MoonCore plugin, PaintTarget target, PaintManager manager,
@@ -67,6 +70,8 @@ public final class PaintSession {
         this.manager = manager;
         this.owner = owner.getUniqueId();
         this.canvas = new PixelCanvas(size);
+        this.viewCenterX = size / 2;
+        this.viewCenterY = size / 2;
         // Sensibilité : valeur retenue pour ce joueur, sinon défaut config du module.
         this.sensitivity = clampSensitivity(manager.sensitivity(this.owner, defaultSensitivity()));
         // Priorité à la texture importée si fournie, sinon la texture propre de la cible.
@@ -230,7 +235,7 @@ public final class PaintSession {
         Player p = player();
         if (p == null) return;
         if (worldPick) { pickFromWorld(p); return; }
-        int[] t = aim(p);
+        int[] t = cursorPinned ? new int[]{cursorX, cursorY} : aim(p);
         if (t == null) {
             // Pas de visée valide (regard franchement ailleurs) → on peint quand même le
             // dernier pixel survolé, pour qu'un clic ne soit jamais « perdu ».
@@ -238,7 +243,19 @@ public final class PaintSession {
             t = new int[]{cursorX, cursorY};
         }
         cursorX = t[0]; cursorY = t[1];
-        int x = t[0], y = t[1];
+        applyToolAt(t[0], t[1]);
+        dirty = true; // feedback immédiat
+    }
+
+    public void applyToolAtCursor() {
+        if (cursorX < 0 || cursorY < 0) pinCursor(canvas.size() / 2, canvas.size() / 2);
+        applyToolAt(cursorX, cursorY);
+        dirty = true;
+    }
+
+    private void applyToolAt(int x, int y) {
+        Player p = player();
+        if (p == null) return;
         switch (currentTool) {
             case PENCIL -> drawStroke(x, y, currentColor);
             case ERASER -> drawStroke(x, y, 0);
@@ -271,7 +288,6 @@ public final class PaintSession {
             }
             default -> { }
         }
-        dirty = true; // feedback immédiat
     }
 
     /** Clic droit = action selon le slot tenu (palette, undo, redo, réglages). */
@@ -304,10 +320,14 @@ public final class PaintSession {
     private void tickRender() {
         Player p = player();
         if (p == null) return;
-        int[] t = aim(p);
-        if (t != null && (t[0] != cursorX || t[1] != cursorY)) {
-            cursorX = t[0]; cursorY = t[1];
-            dirty = true;
+        if (!cursorPinned) {
+            int[] t = aim(p);
+            if (t != null && (t[0] != cursorX || t[1] != cursorY)) {
+                cursorX = t[0]; cursorY = t[1];
+                keepCursorVisible();
+                showCursorFeedback(p);
+                dirty = true;
+            }
         }
         if (dirty) {
             try { p.sendMap(mapView); } catch (Throwable ignored) { }
@@ -319,7 +339,108 @@ public final class PaintSession {
 
     private int[] aim(Player p) {
         if (frame == null || !frame.isValid()) return null;
-        return PaintRaytracer.texel(p, frame, canvas.size(), flipU, sensitivity);
+        double gain = p.isSneaking() ? sensitivity * 0.35 : sensitivity;
+        int[] local = PaintRaytracer.texel(p, frame, viewSize(), flipU, gain);
+        if (local == null) return null;
+        return new int[]{viewOriginX() + local[0], viewOriginY() + local[1]};
+    }
+
+    private void showCursorFeedback(Player p) {
+        int sampled = canvas.get(cursorX, cursorY);
+        String hex = (sampled >>> 24) == 0 ? "transparent" : "#" + String.format("%06X", sampled & 0xFFFFFF);
+        p.sendActionBar(Text.mm("<gray>Pixel <white>" + cursorX + "," + cursorY + "</white> · " + hex
+                + " · zoom x" + zoom + (cursorPinned ? " · verrouillé" : "")));
+    }
+
+    // ---- Loupe / curseur précis ----
+
+    public int zoom() { return zoom; }
+
+    public int viewSize() {
+        return Math.max(1, canvas.size() / zoom);
+    }
+
+    public int viewOriginX() {
+        return viewOrigin(viewCenterX);
+    }
+
+    public int viewOriginY() {
+        return viewOrigin(viewCenterY);
+    }
+
+    private int viewOrigin(int center) {
+        int visible = viewSize();
+        return clamp(center - visible / 2, 0, canvas.size() - visible);
+    }
+
+    public void cycleZoom(boolean backwards) {
+        int[] values = {1, 2, 4, 8};
+        int idx = 0;
+        for (int i = 0; i < values.length; i++) if (values[i] == zoom) { idx = i; break; }
+        zoom = values[(idx + (backwards ? values.length - 1 : 1)) % values.length];
+        if (canvas.size() / zoom < 2) zoom = 1;
+        focusViewOnCursor();
+        dirty = true;
+    }
+
+    public void resetZoom() {
+        zoom = 1;
+        focusViewOnCursor();
+        dirty = true;
+    }
+
+    public void focusViewOnCursor() {
+        if (cursorX >= 0 && cursorY >= 0) {
+            viewCenterX = cursorX;
+            viewCenterY = cursorY;
+        } else {
+            viewCenterX = canvas.size() / 2;
+            viewCenterY = canvas.size() / 2;
+        }
+        dirty = true;
+    }
+
+    public void panView(int dx, int dy) {
+        viewCenterX = clamp(viewCenterX + dx, 0, canvas.size() - 1);
+        viewCenterY = clamp(viewCenterY + dy, 0, canvas.size() - 1);
+        dirty = true;
+    }
+
+    public void pinCursor(int x, int y) {
+        cursorX = clamp(x, 0, canvas.size() - 1);
+        cursorY = clamp(y, 0, canvas.size() - 1);
+        cursorPinned = true;
+        keepCursorVisible();
+        Player p = player();
+        if (p != null) showCursorFeedback(p);
+        dirty = true;
+    }
+
+    public void nudgeCursor(int dx, int dy) {
+        if (cursorX < 0 || cursorY < 0) pinCursor(canvas.size() / 2, canvas.size() / 2);
+        else pinCursor(cursorX + dx, cursorY + dy);
+    }
+
+    public void unpinCursor() {
+        cursorPinned = false;
+        dirty = true;
+        Player p = player();
+        if (p != null) p.sendActionBar(Text.mm("<gray>Curseur libre"));
+    }
+
+    public boolean cursorPinned() { return cursorPinned; }
+
+    private void keepCursorVisible() {
+        if (zoom <= 1 || cursorX < 0 || cursorY < 0) return;
+        int ox = viewOriginX(), oy = viewOriginY(), visible = viewSize();
+        if (cursorX < ox || cursorX >= ox + visible || cursorY < oy || cursorY >= oy + visible) {
+            viewCenterX = cursorX;
+            viewCenterY = cursorY;
+        }
+    }
+
+    private static int clamp(int v, int min, int max) {
+        return Math.max(min, Math.min(max, v));
     }
 
     // ---- Sensibilité du curseur (réglable dans le livre) ----

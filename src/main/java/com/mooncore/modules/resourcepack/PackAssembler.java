@@ -30,7 +30,9 @@ public final class PackAssembler {
     public Built assemble(Map<String, CustomItemDef> defs, File buildDir, File texturesSrc,
                           File packSources, File outZip,
                           Map<String, com.mooncore.modules.customblock.CustomBlockDef> blockDefs,
-                          File blockTexturesSrc) throws Exception {
+                          File blockTexturesSrc,
+                          Map<String, com.mooncore.modules.boss.BossDefinition> bossDefs,
+                          File bossTexturesSrc) throws Exception {
         deleteRecursive(buildDir);
         buildDir.mkdirs();
 
@@ -50,11 +52,20 @@ public final class PackAssembler {
                     .build(blockDefs, buildDir, blockTexturesSrc, r.warnings());
         }
 
+        // 2c) Boss custom : textures cosmétiques portées sur la tête (carved_pumpkin + CMD).
+        int bossModels = 0, bossCopied = 0;
+        if (bossDefs != null && !bossDefs.isEmpty()) {
+            var br = new com.mooncore.modules.boss.BossPackBuilder(log)
+                    .build(bossDefs, buildDir, bossTexturesSrc, r.warnings());
+            bossModels = br.models();
+            bossCopied = br.copied();
+        }
+
         // 3) Zip + SHA-1.
         outZip.getParentFile().mkdirs();
         zipDir(buildDir, outZip);
         byte[] sha1 = sha1(outZip);
-        return new Built(outZip, sha1, r.models() + blocks, r.copied());
+        return new Built(outZip, sha1, r.models() + blocks + bossModels, r.copied() + bossCopied);
     }
 
     // ---- helpers ----

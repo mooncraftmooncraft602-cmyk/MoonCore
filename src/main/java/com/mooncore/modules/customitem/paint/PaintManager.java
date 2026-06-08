@@ -72,8 +72,8 @@ public final class PaintManager {
     }
 
     /**
-     * Résout la texture PNG d'une base à importer : item custom → bloc custom → texture
-     * VANILLA (vanilla-textures/, ex. deepslate_diamond_ore). null si introuvable.
+     * Résout la texture PNG d'une base à importer : item custom → bloc custom → boss
+     * custom → texture VANILLA (vanilla-textures/, ex. deepslate_diamond_ore). null si introuvable.
      */
     public static java.io.File resolveTexture(MoonCore plugin, String id) {
         if (id == null || id.isBlank()) return null;
@@ -82,6 +82,8 @@ public final class PaintManager {
         if (item.isFile()) return item;
         java.io.File block = new java.io.File(plugin.getDataFolder(), "blocks-textures/" + norm + ".png");
         if (block.isFile()) return block;
+        java.io.File boss = new java.io.File(plugin.getDataFolder(), "boss-textures/" + norm + ".png");
+        if (boss.isFile()) return boss;
         java.io.File vanilla = new java.io.File(plugin.getDataFolder(), "vanilla-textures/" + norm + ".png");
         if (vanilla.isFile()) return vanilla;
         return null;

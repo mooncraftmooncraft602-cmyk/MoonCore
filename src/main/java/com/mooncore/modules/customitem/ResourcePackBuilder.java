@@ -41,6 +41,7 @@ public final class ResourcePackBuilder {
      */
     public Result build(Map<String, CustomItemDef> defs, File outputDir, File textureSource) {
         List<String> warnings = new ArrayList<>();
+        writePackMeta(outputDir, warnings);
         // material -> (customModelData -> modelKey)
         Map<Material, Map<Integer, String>> byMaterial = new LinkedHashMap<>();
         for (CustomItemDef def : defs.values()) {
@@ -59,8 +60,6 @@ public final class ResourcePackBuilder {
         File texturesItem = new File(assets, "textures/item/custom");
         modelsCustom.mkdirs();
         texturesItem.mkdirs();
-
-        writePackMeta(outputDir, warnings);
 
         int models = 0, copied = 0;
         for (Map.Entry<Material, Map<Integer, String>> e : byMaterial.entrySet()) {

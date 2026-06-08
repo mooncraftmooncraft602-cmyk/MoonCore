@@ -140,7 +140,7 @@ leaderboard-entry: "<gray>#<rank></gray> <white><player></white> <dark_gray>—<
 # --- Boss ---
 boss-spawned: "<gold>⚔ Un boss est apparu :</gold> <name><gold> !</gold>"
 boss-defeated: "<gold>☠ Le boss</gold> <name> <gold>a été vaincu !</gold>"
-boss-usage: "<gray>/moon boss <list|spawn></gray>"
+boss-usage: "<gray>/moon boss <list|spawn|paint></gray>"
 boss-list-header: "<gradient:#ff4040:#8a2be2>━━━ Boss ━━━</gradient>"
 boss-list-empty: "<gray>Aucun boss défini.</gray>"
 boss-list-entry: "<gray>•</gray> <white><id></white>"

@@ -14,6 +14,7 @@ import com.mooncore.util.Attrs;
 import com.mooncore.util.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -25,6 +26,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -48,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class BossManagerModule extends AbstractModule {
 
     private final Map<String, BossDefinition> registry = new ConcurrentHashMap<>();
+    private final Map<String, File> definitionFiles = new ConcurrentHashMap<>();
     private final Map<UUID, ActiveBoss> active = new ConcurrentHashMap<>();
     private NamespacedKey bossKey;
     private BukkitTask tickTask;
@@ -71,11 +76,13 @@ public final class BossManagerModule extends AbstractModule {
             if (!ab.entity().isDead()) ab.entity().remove();
         }
         active.clear();
+        definitionFiles.clear();
     }
 
     @Override
     protected void onReload() {
         registry.clear();
+        definitionFiles.clear();
         loadBosses();
     }
 
@@ -94,10 +101,14 @@ public final class BossManagerModule extends AbstractModule {
             ConfigurationSection sec = yml.getConfigurationSection("bosses");
             if (sec == null) continue;
             for (String id : sec.getKeys(false)) {
+                String norm = id.toLowerCase(Locale.ROOT);
                 ConfigurationSection b = sec.getConfigurationSection(id);
                 if (b == null) continue;
-                BossDefinition def = parseBoss(id, b);
-                if (def != null) registry.put(id, def);
+                BossDefinition def = parseBoss(norm, b);
+                if (def != null) {
+                    registry.put(norm, def);
+                    definitionFiles.put(norm, f);
+                }
             }
         }
         log().info("BossManager : " + registry.size() + " boss chargé(s).");
@@ -132,6 +143,7 @@ public final class BossManagerModule extends AbstractModule {
         BossDefinition def = parseBoss(safeId, yml.getConfigurationSection("bosses." + safeId));
         if (def == null) return false;
         registry.put(safeId, def);
+        definitionFiles.put(safeId, f);
         return true;
     }
 
@@ -169,7 +181,9 @@ public final class BossManagerModule extends AbstractModule {
                     phases,
                     emptyToNull(b.getString("loot-reward", "")),
                     b.getLong("progression-xp", 0),
-                    b.getString("bar-color", "PURPLE"));
+                    b.getString("bar-color", "PURPLE"),
+                    emptyToNull(b.getString("texture-key", "")),
+                    b.getInt("texture-custom-model-data", textureModelData(id)));
         } catch (IllegalArgumentException e) {
             log().warn("Boss invalide ignoré : " + id + " (" + e.getMessage() + ")");
             return null;
@@ -194,6 +208,7 @@ public final class BossManagerModule extends AbstractModule {
     // ---- Spawn ----
 
     public boolean spawn(String bossId, Location loc) {
+        bossId = bossId == null ? "" : bossId.toLowerCase(Locale.ROOT);
         BossDefinition def = registry.get(bossId);
         if (def == null || loc.getWorld() == null) return false;
 
@@ -222,6 +237,7 @@ public final class BossManagerModule extends AbstractModule {
         setAttr(entity, Attrs.ATTACK_DAMAGE, def.damage());
         setAttr(entity, Attrs.MOVEMENT_SPEED, def.speed());
         if (def.armor() > 0) setAttr(entity, Attrs.ARMOR, def.armor());
+        applyTextureCosmetic(entity, def);
 
         BarColor color;
         try { color = BarColor.valueOf(def.barColor().toUpperCase(Locale.ROOT)); }
@@ -239,6 +255,24 @@ public final class BossManagerModule extends AbstractModule {
     private void setAttr(LivingEntity e, Attribute attr, double value) {
         AttributeInstance inst = e.getAttribute(attr);
         if (inst != null) inst.setBaseValue(value);
+    }
+
+    private void applyTextureCosmetic(LivingEntity entity, BossDefinition def) {
+        if (def.textureKey() == null) return;
+        File png = new File(texturesFolder(), def.textureKey() + ".png");
+        if (!png.isFile() || entity.getEquipment() == null) return;
+        ItemStack hat = new ItemStack(Material.CARVED_PUMPKIN);
+        ItemMeta meta = hat.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Text.mm(def.displayName())
+                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+            meta.setCustomModelData(def.textureCustomModelData() > 0
+                    ? def.textureCustomModelData() : textureModelData(def.id()));
+            meta.addItemFlags(ItemFlag.values());
+            hat.setItemMeta(meta);
+        }
+        entity.getEquipment().setHelmet(hat);
+        entity.getEquipment().setHelmetDropChance(0f);
     }
 
     /**
@@ -381,8 +415,52 @@ public final class BossManagerModule extends AbstractModule {
     // ---- Helpers ----
 
     public Collection<String> bossIds() { return registry.keySet(); }
-    public boolean exists(String id) { return registry.containsKey(id); }
+    public boolean exists(String id) { return id != null && registry.containsKey(id.toLowerCase(Locale.ROOT)); }
     public int activeCount() { return active.size(); }
+    public Map<String, BossDefinition> rawDefs() { return Map.copyOf(registry); }
+
+    public File texturesFolder() {
+        File f = new File(plugin().getDataFolder(), "boss-textures");
+        if (!f.exists()) f.mkdirs();
+        return f;
+    }
+
+    public BossDefinition definition(String id) {
+        return id == null ? null : registry.get(id.toLowerCase(Locale.ROOT));
+    }
+
+    public boolean setTexture(String bossId, String textureKey, int customModelData) {
+        String id = bossId == null ? "" : bossId.toLowerCase(Locale.ROOT);
+        BossDefinition current = registry.get(id);
+        if (current == null) return false;
+        String key = sanitizeTextureKey(textureKey == null || textureKey.isBlank() ? id : textureKey);
+        File src = definitionFiles.get(id);
+        if (src == null) return false;
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(src);
+        String path = "bosses." + id;
+        if (!yml.contains(path)) return false;
+        yml.set(path + ".texture-key", key);
+        yml.set(path + ".texture-custom-model-data", customModelData > 0 ? customModelData : textureModelData(id));
+        try {
+            yml.save(src);
+        } catch (java.io.IOException e) {
+            log().error("Échec d'écriture de la texture du boss " + id, e);
+            return false;
+        }
+        BossDefinition updated = parseBoss(id, yml.getConfigurationSection(path));
+        if (updated != null) registry.put(id, updated);
+        return updated != null;
+    }
+
+    public static int textureModelData(String bossId) {
+        int h = Math.floorMod((bossId == null ? "boss" : bossId.toLowerCase(Locale.ROOT)).hashCode(), 100000);
+        return 780000 + h;
+    }
+
+    private static String sanitizeTextureKey(String key) {
+        String s = key.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_-]", "_");
+        return s.isBlank() ? "boss" : s;
+    }
 
     private double attrValue(LivingEntity e, Attribute attr, double def) {
         AttributeInstance inst = e.getAttribute(attr);

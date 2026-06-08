@@ -18,12 +18,15 @@ public record BossDefinition(
         List<BossPhase> phases,
         String lootRewardId,
         long progressionXp,
-        String barColor) {
+        String barColor,
+        String textureKey,
+        int textureCustomModelData) {
 
     public BossDefinition {
         if (phases == null || phases.isEmpty()) {
             phases = List.of(new BossPhase("default", 100, List.of()));
         }
         if (maxHealth <= 0) maxHealth = 100;
+        if (textureKey != null && textureKey.isBlank()) textureKey = null;
     }
 }
