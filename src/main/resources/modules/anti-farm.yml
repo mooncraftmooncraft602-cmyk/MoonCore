@@ -1,0 +1,41 @@
+# =====================================================================
+#  Module AntiFarm (AntiFarmManager)
+#  Objectif : ralentir les fermes industrielles sans casser les farms normales.
+#  0 = limite désactivée.
+# =====================================================================
+
+spawners:
+  # Spawners maximum par chunk (16x16). 0 = illimité.
+  max-per-chunk: 8
+  # Spawners maximum possédés par un joueur. 0 = illimité.
+  max-per-player: 32
+  # Spawners maximum par équipe (nécessite le module Teams). 0 = illimité.
+  max-per-team: 64
+
+entities:
+  # Plafond d'entités vivantes (hors joueurs) par chunk avant blocage du spawn.
+  # Protège les performances contre l'accumulation massive de mobs.
+  max-per-chunk: 64
+  # Raisons de spawn comptabilisées pour le plafond ci-dessus.
+  count-reasons:
+    - NATURAL
+    - SPAWNER
+    - BREEDING
+
+# Réduction progressive des rendements (drops + XP) au-delà d'un rythme de kills.
+yield:
+  enabled: true
+  # En dessous de ce nombre de kills sur la fenêtre, rendement plein (×1).
+  soft-cap-kills: 120
+  # À partir de ce nombre, rendement minimal (min-factor).
+  hard-cap-kills: 400
+  # Fenêtre glissante d'observation (secondes).
+  window-seconds: 60
+  # Facteur de rendement minimal appliqué au plafond (0..1).
+  min-factor: 0.2
+
+# Alertes envoyées aux détenteurs de mooncore.admin.antifarm.
+alerts:
+  enabled: true
+  # Délai minimal entre deux alertes (secondes).
+  cooldown-seconds: 30

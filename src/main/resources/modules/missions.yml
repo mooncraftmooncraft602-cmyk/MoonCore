@@ -1,0 +1,7 @@
+# =====================================================================
+#  Module Missions (MissionManager — journalières/hebdo/saisonnières)
+#  Les missions sont définies dans content/missions/*.yml.
+#  Réinitialisation automatique par période (UTC) : jour, semaine, saison.
+# =====================================================================
+
+# (Réservé aux réglages futurs : rotation aléatoire, nombre de missions actives, etc.)

@@ -1,0 +1,7 @@
+# =====================================================================
+#  Module Statistics (StatisticsManager)
+# =====================================================================
+
+history:
+  # Journaliser chaque modification de stat dans mooncore_stat_history (audit).
+  enabled: true

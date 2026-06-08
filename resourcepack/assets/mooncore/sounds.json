@@ -1,0 +1,77 @@
+{
+  "place_1": { "category": "music", "sounds": [ { "name": "mooncore:place_1/0", "stream": true } ] },
+  "place_2": { "category": "music", "sounds": [ { "name": "mooncore:place_2/0", "stream": true } ] },
+  "place_3": { "category": "music", "sounds": [ { "name": "mooncore:place_3/0", "stream": true } ] },
+
+  "boss_demoniaque": { "category": "music", "sounds": [
+    { "name": "mooncore:boss_demoniaque/0", "stream": true },
+    { "name": "mooncore:boss_demoniaque/1", "stream": true },
+    { "name": "mooncore:boss_demoniaque/2", "stream": true },
+    { "name": "mooncore:boss_demoniaque/3", "stream": true } ] },
+
+  "boss_final": { "category": "music", "sounds": [
+    { "name": "mooncore:boss_final/0", "stream": true },
+    { "name": "mooncore:boss_final/1", "stream": true },
+    { "name": "mooncore:boss_final/2", "stream": true },
+    { "name": "mooncore:boss_final/3", "stream": true } ] },
+
+  "boss_dragon": { "category": "music", "sounds": [
+    { "name": "mooncore:boss_dragon/0", "stream": true },
+    { "name": "mooncore:boss_dragon/1", "stream": true },
+    { "name": "mooncore:boss_dragon/2", "stream": true },
+    { "name": "mooncore:boss_dragon/3", "stream": true } ] },
+
+  "boss_principal": { "category": "music", "sounds": [
+    { "name": "mooncore:boss_principal/0", "stream": true },
+    { "name": "mooncore:boss_principal/1", "stream": true },
+    { "name": "mooncore:boss_principal/2", "stream": true },
+    { "name": "mooncore:boss_principal/3", "stream": true } ] },
+
+  "boss_phase": { "category": "music", "sounds": [
+    { "name": "mooncore:boss_phase/0", "stream": true },
+    { "name": "mooncore:boss_phase/1", "stream": true } ] },
+
+  "combat": { "category": "music", "sounds": [
+    { "name": "mooncore:combat/0", "stream": true },
+    { "name": "mooncore:combat/1", "stream": true } ] },
+
+  "endgame": { "category": "music", "sounds": [
+    { "name": "mooncore:endgame/0", "stream": true },
+    { "name": "mooncore:endgame/1", "stream": true } ] },
+
+  "event_pvp": { "category": "music", "sounds": [
+    { "name": "mooncore:event_pvp/0", "stream": true },
+    { "name": "mooncore:event_pvp/1", "stream": true },
+    { "name": "mooncore:event_pvp/2", "stream": true },
+    { "name": "mooncore:event_pvp/3", "stream": true } ] },
+
+  "loot_legendaire": { "category": "music", "sounds": [
+    { "name": "mooncore:loot_legendaire/0", "stream": true },
+    { "name": "mooncore:loot_legendaire/1", "stream": true },
+    { "name": "mooncore:loot_legendaire/2", "stream": true },
+    { "name": "mooncore:loot_legendaire/3", "stream": true } ] },
+
+  "event_start": { "category": "music", "sounds": [
+    { "name": "mooncore:event_start/0", "stream": true },
+    { "name": "mooncore:event_start/1", "stream": true } ] },
+
+  "mining": { "category": "music", "sounds": [
+    { "name": "mooncore:mining/0", "stream": true },
+    { "name": "mooncore:mining/1", "stream": true } ] },
+
+  "death": { "category": "music", "sounds": [
+    { "name": "mooncore:death/0", "stream": true },
+    { "name": "mooncore:death/1", "stream": true } ] },
+
+  "spawn": { "category": "music", "sounds": [
+    { "name": "mooncore:spawn/0", "stream": true },
+    { "name": "mooncore:spawn/1", "stream": true } ] },
+
+  "exploration": { "category": "music", "sounds": [
+    { "name": "mooncore:exploration/0", "stream": true },
+    { "name": "mooncore:exploration/1", "stream": true } ] },
+
+  "zone_danger": { "category": "music", "sounds": [
+    { "name": "mooncore:zone_danger/0", "stream": true },
+    { "name": "mooncore:zone_danger/1", "stream": true } ] }
+}

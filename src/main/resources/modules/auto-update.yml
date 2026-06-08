@@ -1,0 +1,21 @@
+# =====================================================================
+#  AutoUpdater — met à jour MoonCore depuis les Releases GitHub
+#  À l'activation (et périodiquement), compare la version au dernier release
+#  du dépôt PUBLIC ci-dessous. Si plus récent et auto-download activé, télécharge
+#  le .jar dans plugins/update/ → appliqué automatiquement au PROCHAIN redémarrage
+#  (Bukkit remplace le plugin au démarrage ; pas de hot-swap en cours d'exécution).
+# =====================================================================
+
+enabled: true
+
+# Dépôt GitHub public "owner/repo".
+repo: "mooncraftmooncraft602-cmyk/MoonCore"
+
+# Télécharger automatiquement la nouvelle version (sinon : notifie seulement).
+auto-download: true
+
+# Intervalle de vérification en minutes (0 = uniquement au démarrage).
+check-interval-minutes: 180
+
+# Prévenir les admins (perm mooncore.admin) en jeu quand une mise à jour est prête.
+notify-admins: true

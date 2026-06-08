@@ -1,0 +1,21 @@
+# =====================================================================
+#  Module Home (HomeManager) — homes / spawn / tpa
+#  Les téléportations passent par PlayerTeleportEvent : les frais éventuels
+#  d'EconomyBalancer (fees.teleport) s'appliquent automatiquement.
+#  Respecte les flags Zone : nohome (bloque /home), notpa (bloque /tpa).
+# =====================================================================
+
+# Nombre maximum de homes par joueur (0 = illimité).
+max-homes: 3
+
+# Durée de validité d'une demande /tpa (secondes).
+tpa-ttl-seconds: 60
+
+# Spawn défini en jeu via /moon spawn set (rempli automatiquement) :
+# spawn:
+#   world: world
+#   x: 0.5
+#   y: 64
+#   z: 0.5
+#   yaw: 0
+#   pitch: 0

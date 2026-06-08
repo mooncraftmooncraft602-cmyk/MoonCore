@@ -1,0 +1,39 @@
+# =====================================================================
+#  Boss MoonCore (data-driven)
+#  entity      : type d'entité Bukkit (ZOMBIE, WITHER_SKELETON, RAVAGER, …)
+#  phases      : activées selon le % de PV (from-percent), avec leurs capacités
+#  capacités   : SUMMON, HEAL, POISON, IGNITE, EXPLODE, AOE_DAMAGE, TELEPORT, DASH, SHIELD
+#                magnitude : sens dépend du type (dégâts, durée en ticks, PV, force…)
+#  loot-reward : id d'une récompense (RewardManager) pour le meilleur attaquant
+# =====================================================================
+
+bosses:
+  warlord:
+    display-name: "<gradient:#ff4040:#8a2be2>Seigneur de Guerre</gradient>"
+    entity: WITHER_SKELETON
+    max-health: 500
+    damage: 12
+    speed: 0.28
+    armor: 10
+    loot-reward: first-boss-kill
+    progression-xp: 3000
+    bar-color: RED
+    phases:
+      p1:
+        from-percent: 100
+        abilities:
+          - { type: SUMMON, cooldown-ticks: 200, count: 3, radius: 6 }
+          - { type: AOE_DAMAGE, cooldown-ticks: 120, magnitude: 6, radius: 5 }
+      p2:
+        from-percent: 50
+        abilities:
+          - { type: DASH, cooldown-ticks: 80, magnitude: 1.6, radius: 16 }
+          - { type: IGNITE, cooldown-ticks: 140, magnitude: 80, radius: 6 }
+          - { type: SUMMON, cooldown-ticks: 160, count: 4, radius: 6 }
+      p3:
+        from-percent: 25
+        abilities:
+          - { type: SHIELD, cooldown-ticks: 300, magnitude: 100 }
+          - { type: EXPLODE, cooldown-ticks: 160, magnitude: 4, radius: 8 }
+          - { type: TELEPORT, cooldown-ticks: 100, radius: 20 }
+          - { type: HEAL, cooldown-ticks: 200, magnitude: 30 }

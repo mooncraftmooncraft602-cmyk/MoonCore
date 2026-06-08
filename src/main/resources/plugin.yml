@@ -1,0 +1,101 @@
+name: MoonCore
+version: ${project.version}
+main: com.mooncore.MoonCore
+api-version: '1.21'
+authors: [MoonTeam]
+description: "${project.description}"
+website: https://example.com
+load: STARTUP
+
+# Vault et PlaceholderAPI sont optionnels : MoonCore démarre sans eux,
+# mais EconomyBalancer et les placeholders se branchent dessus si présents.
+softdepend: [Vault, PlaceholderAPI]
+
+commands:
+  moon:
+    description: Commande racine de MoonCore (joueur + admin)
+    usage: /moon help
+    aliases: [mc, mooncore]
+
+permissions:
+  # ----- Racines -----
+  mooncore.*:
+    description: Accès complet à MoonCore (toutes permissions)
+    default: op
+    children:
+      mooncore.admin: true
+      mooncore.player: true
+
+  mooncore.player:
+    description: Accès joueur (commandes et fonctionnalités de base)
+    default: true
+    children:
+      mooncore.help: true
+      mooncore.progression.view: true
+      mooncore.missions.view: true
+      mooncore.stats.view: true
+      mooncore.leaderboard.view: true
+      mooncore.home.use: true
+      mooncore.tpa.use: true
+      mooncore.team.use: true
+      mooncore.spawn.use: true
+
+  mooncore.admin:
+    description: Accès administrateur (gestion in-game complète)
+    default: op
+    children:
+      mooncore.admin.events: true
+      mooncore.admin.bosses: true
+      mooncore.admin.zones: true
+      mooncore.admin.progression: true
+      mooncore.admin.economy: true
+      mooncore.admin.enchants: true
+      mooncore.admin.missions: true
+      mooncore.admin.rewards: true
+      mooncore.admin.seasons: true
+      mooncore.admin.statistics: true
+      mooncore.admin.antifarm: true
+      mooncore.admin.audio: true
+      mooncore.admin.items: true
+      mooncore.admin.blocks: true
+      mooncore.admin.ai: true
+      mooncore.admin.debug: true
+      mooncore.admin.reload: true
+
+  # ----- Joueur (feuilles) -----
+  mooncore.help: { default: true }
+  mooncore.progression.view: { default: true }
+  mooncore.missions.view: { default: true }
+  mooncore.stats.view: { default: true }
+  mooncore.leaderboard.view: { default: true }
+  mooncore.home.use: { default: true }
+  mooncore.tpa.use: { default: true }
+  mooncore.team.use: { default: true }
+  mooncore.spawn.use: { default: true }
+  mooncore.admin.spawn: { default: op }
+
+  # ----- Admin (feuilles) -----
+  mooncore.admin.events: { default: op }
+  mooncore.admin.bosses: { default: op }
+  mooncore.admin.zones: { default: op }
+  mooncore.admin.progression: { default: op }
+  mooncore.admin.economy: { default: op }
+  mooncore.admin.enchants: { default: op }
+  mooncore.admin.missions: { default: op }
+  mooncore.admin.rewards: { default: op }
+  mooncore.admin.seasons: { default: op }
+  mooncore.admin.statistics: { default: op }
+  mooncore.admin.antifarm: { default: op }
+  mooncore.admin.audio: { default: op }
+  mooncore.admin.items: { default: op }
+  mooncore.admin.blocks: { default: op }
+  mooncore.admin.ai: { default: op }
+  mooncore.admin.debug: { default: op }
+  mooncore.admin.reload: { default: op }
+
+  # ----- Bypass (staff de confiance) -----
+  mooncore.bypass.antifarm: { default: false }
+  mooncore.bypass.antiafk: { default: false }
+  mooncore.bypass.economy.tax: { default: false }
+  mooncore.bypass.zone: { default: false }
+  mooncore.bypass.cooldown: { default: false }

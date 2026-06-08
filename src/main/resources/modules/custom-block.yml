@@ -1,0 +1,14 @@
+# =====================================================================
+#  CustomBlockManager — blocs/minerais custom (note_block + resource pack)
+#  Les blocs sont définis dans plugins/MoonCore/blocks/<id>.yml (créés en jeu
+#  via /moon block ... ou /moon ai createblock). Textures : blocks-textures/<key>.png
+#  (ou générées par l'IA). Le pack est assemblé par le module resource-pack.
+# =====================================================================
+
+# Active la génération des minerais custom dans les NOUVEAUX chunks.
+# (La worldgen vanilla est figée : les chunks déjà explorés ne sont pas modifiés.)
+worldgen-enabled: true
+
+# Note technique : chaque bloc custom occupe un état de note_block (instrument×note×powered).
+# Capacité = 800 blocs custom. Le son et le changement de note des note blocks sont
+# neutralisés pour garder les états stables.

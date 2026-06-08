@@ -1,0 +1,34 @@
+# =====================================================================
+#  Module Progression (ProgressionManager)
+#  Tiers saisonniers : XP cumulé, déblocages (gating) et récompense de palier.
+# =====================================================================
+
+# Sources d'XP de progression sur actions (les modules en ajoutent via l'API).
+xp-sources:
+  mob-kill: 1
+  player-kill: 5
+
+# Paliers. "xp-required" = XP TOTAL cumulé pour atteindre le tier.
+# "unlocks" = fonctionnalités débloquées (utilisées par d'autres modules pour le gating).
+# "reward" = id de récompense (RewardManager) octroyée à la montée.
+tiers:
+  '1':
+    xp-required: 0
+    unlocks: []
+    reward: ''
+  '2':
+    xp-required: 2000
+    unlocks: [enchant_tier2, zone_mines_2]
+    reward: ''
+  '3':
+    xp-required: 8000
+    unlocks: [enchant_tier3, boss_access_1, endgame_basic]
+    reward: ''
+  '4':
+    xp-required: 25000
+    unlocks: [enchant_tier4, boss_access_2, elytra_core]
+    reward: ''
+  '5':
+    xp-required: 70000
+    unlocks: [enchant_tier5, boss_access_3, endgame_full, titan_gear]
+    reward: ''

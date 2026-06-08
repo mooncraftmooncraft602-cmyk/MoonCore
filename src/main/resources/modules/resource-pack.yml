@@ -1,0 +1,27 @@
+# =====================================================================
+#  ResourcePackForce — resource pack serveur obligatoire
+#  Assemble : modèles + textures d'items (items-textures/) + tout ce qui se
+#  trouve dans plugins/MoonCore/pack-sources/ (mets-y tes SONS et autres assets,
+#  ex. assets/minecraft/sounds/... + sounds.json). Sert le tout via HTTP et
+#  l'impose à la connexion.
+# =====================================================================
+
+enabled: true
+
+# Pack obligatoire (true = le client doit l'accepter).
+force: true
+
+# Expulser le joueur s'il refuse / échoue le téléchargement (pack vraiment obligatoire).
+kick-on-decline: false
+
+# Message affiché au joueur lors de la demande de pack (MiniMessage).
+prompt: "<gradient:#8a2be2:#c77dff>Resource pack MoonCore requis pour jouer</gradient>"
+
+# Serveur HTTP intégré qui sert le pack.
+# host : laisser vide = auto-détection de l'IP locale. METS L'IP/HOST PUBLIC
+#        joignable par les joueurs si le serveur n'est pas en local/LAN.
+host: ""
+port: 8765
+
+# Pour générer des textures d'items automatiquement via l'IA, active aussi
+# 'generate-textures' dans modules/ai-assistant.yml.

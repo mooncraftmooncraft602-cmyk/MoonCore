@@ -1,0 +1,33 @@
+# Build output
+target/
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Gros binaires (packs/audio) — distribués via les Releases GitHub, pas le dépôt
+*.zip
+*.mcpack
+*.ogg
+/bedrockpack/
+/resourcepack/sounds/
+
+# Réglages locaux de l'agent
+/.claude/
+
+# Local Maven distribution (downloaded for offline build verification)
+.tools/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime test server
+run/
+logs/

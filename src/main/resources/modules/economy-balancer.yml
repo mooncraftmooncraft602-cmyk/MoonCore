@@ -1,0 +1,37 @@
+# =====================================================================
+#  Module EconomyBalancer
+#  Agit au-dessus de Vault (l'économie existante reste la source de vérité).
+#  Objectif : combattre l'inflation via taxes, frais (sinks) et audit.
+# =====================================================================
+
+# Taux de taxe prélevé sur les gains routés via depositWithTax (0..1).
+transaction-tax-rate: 0.05
+
+# Frais fixes (money sinks). 0 = désactivé.
+fees:
+  teleport: 0.0
+  # Causes de téléportation taxées (noms de PlayerTeleportEvent.TeleportCause).
+  teleport-causes:
+    - COMMAND
+    - PLUGIN
+  repair: 0.0
+
+# Taxe progressive périodique sur la richesse des joueurs en ligne (money sink majeur).
+wealth-tax:
+  # Intervalle d'application (secondes). 0 = désactivé.
+  interval-seconds: 0
+  # Tranches marginales : à partir de "from", le taux "rate" (0..1) s'applique.
+  brackets:
+    - { from: 0,        rate: 0.0 }
+    - { from: 100000,   rate: 0.01 }
+    - { from: 1000000,  rate: 0.03 }
+    - { from: 10000000, rate: 0.05 }
+
+# Détection de gains anormaux (fermes à argent / exploits).
+abnormal-gain:
+  # Fenêtre d'observation (secondes).
+  window-seconds: 300
+  # Total de gains sur la fenêtre déclenchant une alerte. 0 = désactivé.
+  threshold: 0
+  # Alerter les détenteurs de mooncore.admin.economy.
+  alert: true

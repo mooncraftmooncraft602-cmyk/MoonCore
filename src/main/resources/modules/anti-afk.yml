@@ -1,0 +1,19 @@
+# =====================================================================
+#  Module AntiAFK (AntiAFKManager)
+#  Détecte l'inactivité et réduit les gains des joueurs AFK.
+# =====================================================================
+
+# Durée d'inactivité avant de considérer un joueur AFK (secondes).
+afk-threshold-seconds: 300
+
+# Multiplicateur appliqué aux gains d'un joueur AFK (0 = aucun gain, 1 = inchangé).
+gain-multiplier-when-afk: 0.0
+
+# La rotation de la tête compte-t-elle comme activité ? (false = anti-AFK plus strict)
+rotation-counts-as-activity: true
+
+# Journaliser les passages AFK / retour actif dans la console.
+log-transitions: true
+
+# Notifier le joueur quand il passe AFK / revient.
+notify-player: true

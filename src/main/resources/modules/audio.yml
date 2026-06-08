@@ -1,0 +1,27 @@
+# =====================================================================
+#  Module Audio (AudioManager)
+#  Les pistes sont définies dans tracks.yml ; les zones audio et les loops
+#  persistés sont stockés dans audio-data.yml (généré au runtime).
+# =====================================================================
+
+# Volume maître appliqué à toutes les pistes (0..1).
+master-volume: 1.0
+
+# Piste par défaut (priorité la plus basse). Laisser vide pour aucune.
+default-track: "exploration"
+
+# Musiques d'événements.
+events:
+  # Piste utilisée si aucun mapping spécifique pour l'event.
+  default-track: "event_pvp"
+  # Mapping eventId -> trackId (voir content/events/*.yml).
+  per-event:
+    invasion-warlord: "boss_principal"
+    happy-hour: "event_pvp"
+
+# Musiques de boss (slot EVENT, priorité au-dessus des zones).
+boss:
+  spawn-track: "boss_principal"
+  phase-track: "boss_final"
+  victory-track: "place_1"
+  victory-seconds: 12

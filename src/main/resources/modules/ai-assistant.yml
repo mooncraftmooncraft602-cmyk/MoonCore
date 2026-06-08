@@ -1,0 +1,68 @@
+# =====================================================================
+#  AIAdminAssistant — assistant IA réservé aux administrateurs
+#  SÉCURITÉ : la clé API ne quitte JAMAIS le serveur (jamais envoyée aux
+#  joueurs, jamais journalisée). L'IA ne produit que des DONNÉES, validées
+#  par MoonCore avant toute application. Aucune commande n'est exécutée
+#  librement à partir de la sortie IA.
+# =====================================================================
+
+# Fournisseur : "anthropic" (Claude) ou "openai" (ou tout service compatible).
+provider: "anthropic"
+
+# Modèle utilisé. Modifiable en jeu : /moon ai model set <modèle>
+model: "claude-opus-4-8"
+
+# Clé API (laisser vide désactive les appels ; le module reste chargé).
+api-key: ""
+
+# Endpoint personnalisé (optionnel, ex. proxy ou passerelle compatible).
+# Laisser vide pour l'endpoint officiel du fournisseur.
+endpoint: ""
+
+# Paramètres de génération.
+temperature: 0.7
+max-output-tokens: 1500
+timeout-seconds: 30
+
+# Limite anti-abus : nombre maximal de requêtes IA par minute (toutes admins confondues).
+max-requests-per-minute: 10
+
+# MODE DÉVELOPPEUR — DANGER : autorise /moon ai code à COMPILER et EXÉCUTER du Java
+# généré par l'IA (contrôle total = risque de crash/corruption). OFF par défaut.
+# Nécessite un JDK (javac) côté serveur. Réservé à l'owner (op). Revue + /moon ai coderun.
+developer-mode: false
+
+# Génération automatique d'une texture d'item via l'API image (xAI: grok-imagine-image).
+# Nécessite le module resource-pack pour distribuer la texture aux joueurs.
+generate-textures: false
+image-model: "grok-imagine-image"
+texture-size: 16          # 16 = facile à éditer + vrai pixel-art ; 32/64 = plus détaillé
+# Rendu pixel-art : palette réduite (quantization) + tramage optionnel.
+texture-palette: 0        # 0 = couleurs intactes ; ex. 24 = look rétro 16-bit
+texture-dither: false     # tramage Floyd–Steinberg (à activer avec une petite palette)
+
+# Modèles proposés par /moon ai model list (purement informatif).
+available-models:
+  - "claude-opus-4-8"
+  - "claude-sonnet-4-6"
+  - "claude-haiku-4-5-20251001"
+
+# Bornes de validation appliquées à toute sortie IA (anti-hallucination / anti-abus / équilibrage).
+limits:
+  max-stat-value: 100.0     # plafond par défaut pour une stat sans cap spécifique
+  max-ability-level: 5      # niveau maximal d'une capacité générée
+  max-abilities: 2          # nombre maximal de capacités par objet (anti-cheat)
+  # Plafonds par stat (un objet ne peut jamais dépasser ça, même en ancient).
+  # Décommente/édite pour ajuster l'équilibrage global :
+  stat-caps:
+    damage: 15.0
+    health: 20.0
+    armor: 20.0
+    crit_chance: 50.0
+    crit_damage: 150.0
+    life_steal: 20.0
+    boss_damage: 75.0
+    pvp_damage: 50.0
+    pve_damage: 50.0
+    movement_speed: 30.0
+    cooldown_reduction: 40.0

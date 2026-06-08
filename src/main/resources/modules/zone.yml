@@ -1,0 +1,17 @@
+# =====================================================================
+#  Module Zone (ZoneManager)
+#  Les régions sont stockées en base (table mooncore_zone), pas ici.
+#  Ce fichier ne contient que les réglages du module.
+# =====================================================================
+
+# Matériau de la baguette de sélection.
+wand-material: GOLDEN_HOE
+
+# Cooldown (ms) entre deux messages "action interdite" pour un même joueur.
+deny-message-cooldown-ms: 1500
+
+# Liste des flags disponibles (référence, lecture seule) :
+#   nohome, notpa, nobed, noelytra, noenderpearl, noclaim,
+#   noblockbreak, noblockplace, nopvp, forcepvp, noflight,
+#   nogrief, nospawner, nomobspawn, noitemdrop, noitempickup,
+#   nointeract, noenter, noleave, nodamage, nocommand

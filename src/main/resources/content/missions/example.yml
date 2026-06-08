@@ -1,0 +1,39 @@
+# =====================================================================
+#  Missions MoonCore (data-driven)
+#  scope : DAILY | WEEKLY | SEASONAL
+#  type  : MINE_BLOCK | PLACE_BLOCK | KILL_MOB | KILL_PLAYER | FISH_CATCH | CRAFT_ITEM | BREED_ANIMAL
+#  reward: id d'une récompense (RewardManager) ; progression-xp : XP de progression
+# =====================================================================
+
+missions:
+  daily-mine-200:
+    scope: DAILY
+    type: MINE_BLOCK
+    target: 200
+    reward: daily-login
+    description: "Miner 200 blocs"
+    progression-xp: 150
+
+  daily-hunt-30:
+    scope: DAILY
+    type: KILL_MOB
+    target: 30
+    reward: ''
+    description: "Tuer 30 monstres"
+    progression-xp: 150
+
+  weekly-fish-100:
+    scope: WEEKLY
+    type: FISH_CATCH
+    target: 100
+    reward: ''
+    description: "Pêcher 100 poissons cette semaine"
+    progression-xp: 800
+
+  seasonal-pvp-250:
+    scope: SEASONAL
+    type: KILL_PLAYER
+    target: 250
+    reward: ''
+    description: "Vaincre 250 joueurs durant la saison"
+    progression-xp: 5000

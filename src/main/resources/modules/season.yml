@@ -1,0 +1,8 @@
+# =====================================================================
+#  Module Season (SeasonManager)
+#  Les données sont partitionnées par seasonId : changer de saison repart
+#  d'un état vierge tout en conservant l'ancienne (archive naturelle).
+# =====================================================================
+
+# Durée d'une saison en jours (0 = sans fin définie). Sert à calculer la date de fin.
+length-days: 60

@@ -1,0 +1,24 @@
+# =====================================================================
+#  CustomItemManager — objets custom data-driven
+#  Les objets eux-mêmes sont définis dans plugins/MoonCore/items/<id>.yml
+#  (créés/édités en jeu via /moon item ...). Ce fichier ne contient que les
+#  réglages globaux du module.
+# =====================================================================
+
+# Surcharge de l'affichage des raretés (couleur MiniMessage + libellé).
+# Toute rareté non listée garde ses valeurs par défaut.
+rarities:
+  common:    { color: "<gray>",        label: "Commun" }
+  uncommon:  { color: "<green>",       label: "Peu commun" }
+  rare:      { color: "<aqua>",        label: "Rare" }
+  epic:      { color: "<light_purple>", label: "Épique" }
+  legendary: { color: "<gold>",        label: "Légendaire" }
+  mythic:    { color: "<red>",         label: "Mythique" }
+  divine:    { color: "<gradient:#ffd700:#fff8b0>", label: "Divin" }
+  ancient:   { color: "<gradient:#00ffd0:#7d5fff>", label: "Ancien" }
+
+# Note compatibilité Bedrock :
+#  - Les stats et capacités sont toujours écrites dans le lore (fallback visuel).
+#  - Les custom-model-data ne sont pas rendus nativement par Bedrock : générer un
+#    pack Geyser séparé. Voir /moon item pack generate.
+#  - Textures source pour la génération du pack : plugins/MoonCore/items-textures/<model-key>.png

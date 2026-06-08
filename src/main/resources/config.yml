@@ -1,0 +1,92 @@
+# =====================================================================
+#  MoonCore - Configuration principale
+#  Chaque module possède son propre fichier dans /modules/<id>.yml
+#  Ce fichier ne contient que le coeur : base de données, modules, langue.
+# =====================================================================
+
+# Version interne du fichier (ne pas modifier à la main).
+config-version: 1
+
+core:
+  # Préfixe utilisé dans les messages (format MiniMessage).
+  prefix: "<gradient:#8a2be2:#c77dff>MoonCore</gradient> <dark_gray>»</dark_gray> "
+  # Langue active : doit correspondre à un fichier lang/<code>.yml
+  language: "fr"
+  # Activer les logs de debug détaillés (verbeux, à n'utiliser que pour diagnostiquer).
+  debug: false
+  # Saison active. Sert de namespace logique pour les données saisonnières.
+  season-id: "season-1"
+
+database:
+  # Type de stockage : "sqlite" (par défaut, fichier autonome, AUCUN serveur requis)
+  # ou "mysql" (MySQL/MariaDB).
+  type: "sqlite"
+  # Fichier SQLite (relatif au dossier du plugin).
+  sqlite-file: "data.db"
+  # --- Paramètres MySQL/MariaDB (utilisés seulement si type: mysql) ---
+  host: "127.0.0.1"
+  port: 3306
+  database: "mooncore"
+  username: "mooncore"
+  password: "changeme"
+  # Paramètres avancés HikariCP.
+  pool:
+    maximum-pool-size: 10        # ~= (coeurs * 2) ; 10 convient à la plupart des serveurs.
+    minimum-idle: 2
+    connection-timeout-ms: 10000
+    idle-timeout-ms: 600000
+    max-lifetime-ms: 1800000
+    keepalive-time-ms: 0
+  properties:
+    useUnicode: true
+    characterEncoding: "utf8"
+    # MariaDB/MySQL : laisser le serveur gérer le fuseau.
+    serverTimezone: "UTC"
+
+# Cache mémoire partagé (Caffeine). Les modules s'appuient dessus.
+cache:
+  # Durée de vie par défaut d'une entrée après dernier accès (secondes).
+  default-expire-after-access-seconds: 600
+  # Taille max par cache nommé (entrées). 0 = illimité.
+  default-maximum-size: 50000
+
+# Activation/désactivation des modules. Un module désactivé n'est jamais chargé.
+# L'ordre de chargement est déterminé automatiquement par les dépendances.
+modules:
+  core: true
+  data: true
+  config: true
+  season: true
+  economy-balancer: true
+  progression: true
+  zone: true
+  anti-farm: true
+  anti-afk: true
+  statistics: true
+  missions: true        # moteur unifié : missions journalières + hebdo + saisonnières
+  quest: true
+  reward: true
+  leaderboard: true
+  event: true
+  boss: true
+  custom-enchant: true
+  endgame-items: true
+  admin-tools: true
+  team: true
+  audio: true
+  home: true
+  custom-item: true     # objets custom data-driven (armes/armures/artefacts/boss/event)
+  custom-block: true    # blocs/minerais custom (note-block + resource pack)
+  ai-assistant: true    # assistant IA admin (nécessite une clé API dans modules/ai-assistant.yml)
+  resource-pack: true   # resource pack forcé (HTTP embarqué + sons + textures)
+  auto-update: true     # vérifie GitHub Releases et télécharge la mise à jour (dossier update/)
+  placeholders: true
+
+# Sauvegarde périodique (flush du cache write-behind vers la base).
+persistence:
+  # Intervalle de flush automatique (secondes).
+  auto-save-interval-seconds: 300
+  # Sauvegarder immédiatement à la déconnexion d'un joueur.
+  save-on-quit: true
+  # Taille des lots d'écriture asynchrone.
+  batch-size: 200

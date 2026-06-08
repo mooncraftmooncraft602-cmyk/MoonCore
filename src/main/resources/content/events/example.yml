@@ -1,0 +1,32 @@
+# =====================================================================
+#  Événements MoonCore (data-driven)
+#  type : libellé libre (BOSS, PVP, TREASURE, SEASONAL…) — informatif
+#  duration-seconds : durée avant exécution des end-actions
+#  auto-interval-seconds : 0 = manuel ; > 0 = démarrage périodique automatique
+#  Actions : BROADCAST, TITLE, SOUND, COMMAND, SPAWN_BOSS, REWARD_ALL, XP_ALL, ZONE_FLAG
+# =====================================================================
+
+events:
+  invasion-warlord:
+    display-name: "<red>Invasion du Seigneur de Guerre</red>"
+    type: BOSS
+    duration-seconds: 900
+    auto-interval-seconds: 0
+    start-actions:
+      - { type: BROADCAST, value: "<red>⚔ Une invasion commence ! Préparez-vous !</red>" }
+      - { type: TITLE, title: "<red>INVASION</red>", subtitle: "<gray>Le Seigneur de Guerre approche</gray>" }
+      - { type: SOUND, sound: entity_ender_dragon_growl }
+      - { type: SPAWN_BOSS, boss: warlord, world: world, x: 0, y: 80, z: 0 }
+    end-actions:
+      - { type: BROADCAST, value: "<gold>L'invasion est terminée.</gold>" }
+
+  happy-hour:
+    display-name: "<gold>Happy Hour</gold>"
+    type: SEASONAL
+    duration-seconds: 1800
+    auto-interval-seconds: 0
+    start-actions:
+      - { type: BROADCAST, value: "<gold>Happy Hour ! Bonus d'XP de progression pour tous !</gold>" }
+      - { type: XP_ALL, amount: 500 }
+    end-actions:
+      - { type: BROADCAST, value: "<gray>Happy Hour terminée.</gray>" }

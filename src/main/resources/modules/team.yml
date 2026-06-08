@@ -1,0 +1,10 @@
+# =====================================================================
+#  Module Team (TeamManager)
+#  Active les limites de spawners par équipe (AntiFarm) et les classements par équipe.
+# =====================================================================
+
+# Nombre maximum de membres par équipe (propriétaire inclus).
+max-members: 8
+
+# Durée de validité d'une invitation (secondes).
+invite-ttl-seconds: 120

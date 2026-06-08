@@ -1,0 +1,26 @@
+# =====================================================================
+#  Quêtes MoonCore (scénarisées, étapes séquentielles)
+#  required-tier : tier de progression minimum pour avancer
+#  steps : exécutées dans l'ordre ; type = objectif (cf. missions)
+#  reward (étape) et final-reward : ids du RewardManager
+# =====================================================================
+
+quests:
+  ascension:
+    display-name: "<gradient:#8a2be2:#c77dff>Ascension</gradient>"
+    required-tier: 1
+    final-reward: first-boss-kill
+    progression-xp: 4000
+    steps:
+      - { description: "Miner 500 blocs", type: MINE_BLOCK, target: 500, reward: daily-login }
+      - { description: "Tuer 150 monstres", type: KILL_MOB, target: 150, reward: "" }
+      - { description: "Vaincre 10 joueurs", type: KILL_PLAYER, target: 10, reward: "" }
+
+  pacte-du-chasseur:
+    display-name: "<red>Pacte du Chasseur</red>"
+    required-tier: 2
+    final-reward: ""
+    progression-xp: 8000
+    steps:
+      - { description: "Tuer 500 monstres", type: KILL_MOB, target: 500, reward: "" }
+      - { description: "Pêcher 50 poissons", type: FISH_CATCH, target: 50, reward: "" }

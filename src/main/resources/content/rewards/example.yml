@@ -1,0 +1,28 @@
+# =====================================================================
+#  Récompenses MoonCore (data-driven)
+#  Chaque entrée sous "rewards" est une récompense nommée (id) avec une
+#  liste ordonnée d'actions. Référencée par les missions, quêtes, events…
+#
+#  Types d'action : ITEM, MONEY, XP, COMMAND, MESSAGE, BROADCAST, STAT
+#    ITEM      : material, amount, name (MiniMessage), lore (liste)
+#    MONEY     : amount  (crédité via Vault)
+#    XP        : amount  (expérience vanilla)
+#    COMMAND   : command (console ; %player% remplacé)
+#    MESSAGE   : value   (MiniMessage, au joueur)
+#    BROADCAST : value   (MiniMessage, à tous)
+#    STAT      : key, amount
+# =====================================================================
+
+rewards:
+  daily-login:
+    actions:
+      - { type: MONEY, amount: 250 }
+      - { type: XP, amount: 50 }
+      - { type: MESSAGE, value: "<green>Merci de ta connexion quotidienne ! <gold>+250$</gold></green>" }
+
+  first-boss-kill:
+    actions:
+      - { type: ITEM, material: DIAMOND, amount: 5, name: "<aqua>Éclat de Boss</aqua>", lore: ["<gray>Preuve de ta victoire</gray>"] }
+      - { type: MONEY, amount: 1000 }
+      - { type: STAT, key: boss_kills, amount: 1 }
+      - { type: BROADCAST, value: "<gold><player></gold> <yellow>a vaincu son premier boss !</yellow>" }

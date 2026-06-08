@@ -1,0 +1,39 @@
+# =====================================================================
+#  MoonCore - Pistes audio (AudioManager)
+#  Ces pistes pointent vers les sons custom du resource pack MoonCore
+#  (cles "mooncore:*", definies dans resourcepack/assets/mooncore/sounds.json).
+#  -> Conversion MP3->OGG : convert-sounds.ps1  (durees dans resourcepack/durations.txt)
+#  -> Hebergement du resource pack : voir resourcepack/README.md
+#
+#  length-seconds : intervalle de relance des boucles. Regle ~ sur la duree de la
+#  piste. Certaines pistes ont plusieurs variantes de durees differentes : on choisit
+#  une valeur proche du max pour eviter les chevauchements (un leger silence est
+#  preferable a une superposition).
+# =====================================================================
+
+tracks:
+  # --- Ambiances / zones ---
+  exploration:   { sound: "mooncore:exploration",   volume: 1.0, pitch: 1.0, loop: true,  fade-in: 20, fade-out: 20, length-seconds: 195 }
+  spawn:         { sound: "mooncore:spawn",         volume: 1.0, pitch: 1.0, loop: true,  fade-in: 20, fade-out: 20, length-seconds: 40 }
+  mining:        { sound: "mooncore:mining",        volume: 1.0, pitch: 1.0, loop: true,  fade-in: 20, fade-out: 20, length-seconds: 46 }
+  zone_danger:   { sound: "mooncore:zone_danger",   volume: 1.0, pitch: 1.0, loop: true,  fade-in: 20, fade-out: 20, length-seconds: 116 }
+  endgame:       { sound: "mooncore:endgame",       volume: 1.0, pitch: 1.0, loop: true,  fade-in: 20, fade-out: 20, length-seconds: 200 }
+  combat:        { sound: "mooncore:combat",        volume: 1.0, pitch: 1.0, loop: true,  fade-in: 10, fade-out: 10, length-seconds: 20 }
+
+  # --- Boss (musiques en boucle) ---
+  boss_principal:  { sound: "mooncore:boss_principal",  volume: 1.0, pitch: 1.0, loop: true, fade-in: 10, fade-out: 10, length-seconds: 185 }
+  boss_demoniaque: { sound: "mooncore:boss_demoniaque", volume: 1.0, pitch: 1.0, loop: true, fade-in: 10, fade-out: 10, length-seconds: 195 }
+  boss_dragon:     { sound: "mooncore:boss_dragon",     volume: 1.0, pitch: 1.0, loop: true, fade-in: 10, fade-out: 10, length-seconds: 225 }
+  boss_final:      { sound: "mooncore:boss_final",      volume: 1.0, pitch: 1.1, loop: true, fade-in: 10, fade-out: 10, length-seconds: 190 }
+  boss_phase:      { sound: "mooncore:boss_phase",      volume: 1.0, pitch: 1.0, loop: false, fade-in: 0, fade-out: 0, length-seconds: 8 }
+
+  # --- Events ---
+  event_pvp:       { sound: "mooncore:event_pvp",       volume: 1.0, pitch: 1.0, loop: true,  fade-in: 20, fade-out: 20, length-seconds: 150 }
+  event_start:     { sound: "mooncore:event_start",     volume: 1.0, pitch: 1.0, loop: false, fade-in: 0,  fade-out: 0,  length-seconds: 10 }
+  loot_legendaire: { sound: "mooncore:loot_legendaire", volume: 1.0, pitch: 1.0, loop: false, fade-in: 0,  fade-out: 10, length-seconds: 135 }
+
+  # --- Etats ---
+  death:    { sound: "mooncore:death",   volume: 1.0, pitch: 1.0, loop: false, fade-in: 0, fade-out: 10, length-seconds: 80 }
+  place_1:  { sound: "mooncore:place_1", volume: 1.0, pitch: 1.0, loop: false, fade-in: 0, fade-out: 10, length-seconds: 23 }
+  place_2:  { sound: "mooncore:place_2", volume: 1.0, pitch: 1.0, loop: false, fade-in: 0, fade-out: 10, length-seconds: 21 }
+  place_3:  { sound: "mooncore:place_3", volume: 1.0, pitch: 1.0, loop: false, fade-in: 0, fade-out: 10, length-seconds: 30 }

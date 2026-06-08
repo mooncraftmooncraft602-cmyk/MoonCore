@@ -1,0 +1,30 @@
+# =====================================================================
+#  Module Leaderboard (LeaderboardManager)
+#  Classements calculés en asynchrone, servis depuis un cache de snapshots.
+#  source : une clé de stat (table statistics) OU "playtime" (temps de jeu).
+# =====================================================================
+
+# Intervalle de recalcul des snapshots (secondes).
+recompute-interval-seconds: 300
+
+boards:
+  kills:
+    title: "Tueurs de monstres"
+    source: mob_kills
+    size: 10
+  pvp:
+    title: "Top PvP"
+    source: player_kills
+    size: 10
+  playtime:
+    title: "Temps de jeu"
+    source: playtime
+    size: 10
+  missions:
+    title: "Missions accomplies"
+    source: missions_completed
+    size: 10
+  miners:
+    title: "Mineurs"
+    source: blocks_mined
+    size: 10
