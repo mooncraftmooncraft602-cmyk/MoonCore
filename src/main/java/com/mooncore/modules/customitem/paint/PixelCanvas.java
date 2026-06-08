@@ -150,6 +150,170 @@ public final class PixelCanvas {
                 if (argb[y][x] == from) argb[y][x] = to;
     }
 
+    // ============================================================
+    //  Outils avancés (assistant)
+    // ============================================================
+
+    private static final int[][] N4 = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
+    /** Rectangle plein ou contour entre deux coins. */
+    public void rect(int x0, int y0, int x1, int y1, int color, boolean filled, Symmetry sym) {
+        int ax = Math.min(x0, x1), bx = Math.max(x0, x1), ay = Math.min(y0, y1), by = Math.max(y0, y1);
+        for (int y = ay; y <= by; y++)
+            for (int x = ax; x <= bx; x++)
+                if (filled || x == ax || x == bx || y == ay || y == by) set(x, y, color, sym);
+    }
+
+    /** Ellipse pleine ou contour inscrite dans la boîte des deux points. */
+    public void ellipse(int x0, int y0, int x1, int y1, int color, boolean filled, Symmetry sym) {
+        double cx = (x0 + x1) / 2.0, cy = (y0 + y1) / 2.0;
+        double rx = Math.max(0.5, Math.abs(x1 - x0) / 2.0), ry = Math.max(0.5, Math.abs(y1 - y0) / 2.0);
+        int ax = Math.min(x0, x1), bx = Math.max(x0, x1), ay = Math.min(y0, y1), by = Math.max(y0, y1);
+        for (int y = ay; y <= by; y++)
+            for (int x = ax; x <= bx; x++) {
+                double nx = (x - cx) / rx, ny = (y - cy) / ry;
+                if (nx * nx + ny * ny > 1.0) continue;
+                if (filled) { set(x, y, color, sym); continue; }
+                boolean border = false;
+                for (int[] o : N4) {
+                    double mx = (x + o[0] - cx) / rx, my = (y + o[1] - cy) / ry;
+                    if (mx * mx + my * my > 1.0) { border = true; break; }
+                }
+                if (border) set(x, y, color, sym);
+            }
+    }
+
+    /** Dégradé linéaire {@code a}→{@code b} projeté sur le vecteur (x0,y0)→(x1,y1) (remplit tout). */
+    public void gradientFill(int x0, int y0, int x1, int y1, int a, int b) {
+        double vx = x1 - x0, vy = y1 - y0, len2 = vx * vx + vy * vy;
+        if (len2 < 1e-6) len2 = 1;
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                double t = Math.max(0, Math.min(1, ((x - x0) * vx + (y - y0) * vy) / len2));
+                argb[y][x] = lerpArgb(a, b, t);
+            }
+    }
+
+    public void flipHorizontal() {
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size / 2; x++) {
+                int t = argb[y][x]; argb[y][x] = argb[y][size - 1 - x]; argb[y][size - 1 - x] = t;
+            }
+    }
+
+    public void flipVertical() {
+        for (int y = 0; y < size / 2; y++) { int[] t = argb[y]; argb[y] = argb[size - 1 - y]; argb[size - 1 - y] = t; }
+    }
+
+    public void rotate90() {
+        int[][] n = new int[size][size];
+        for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) n[x][size - 1 - y] = argb[y][x];
+        argb = n;
+    }
+
+    /** Décale la toile de (dx,dy), les bords libérés deviennent transparents. */
+    public void shift(int dx, int dy) {
+        int[][] n = new int[size][size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                int sx = x - dx, sy = y - dy;
+                n[y][x] = in(sx, sy) ? argb[sy][sx] : 0;
+            }
+        argb = n;
+    }
+
+    /** Ajoute un contour de {@code color} autour des amas opaques (idéal icônes d'objet). */
+    public void outline(int color) {
+        if ((color >>> 24) == 0) color |= 0xFF000000;
+        int[][] src = copy(argb);
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                if ((src[y][x] >>> 24) != 0) continue;
+                for (int[] o : N4)
+                    if (!isTrans(src, x + o[0], y + o[1])) { argb[y][x] = color; break; }
+            }
+    }
+
+    /** Ombrage automatique « biseau » : éclaircit les bords haut/gauche, assombrit bas/droite. */
+    public void autoShade() {
+        int[][] src = copy(argb);
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                if ((src[y][x] >>> 24) == 0) continue;
+                double f = 1.0;
+                if (isTrans(src, x - 1, y) || isTrans(src, x, y - 1)) f += 0.20;
+                if (isTrans(src, x + 1, y) || isTrans(src, x, y + 1)) f -= 0.20;
+                if (f != 1.0) argb[y][x] = scaleRgb(src[y][x], f);
+            }
+    }
+
+    /** Multiplie la luminosité de tous les pixels opaques (1.0 = inchangé). */
+    public void adjustBrightness(double f) {
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                if ((argb[y][x] >>> 24) != 0) argb[y][x] = scaleRgb(argb[y][x], f);
+    }
+
+    /** Supprime les pixels opaques isolés (sans voisin opaque) — nettoyage anti-bruit. */
+    public void removeStray() {
+        int[][] src = copy(argb);
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                if ((src[y][x] >>> 24) == 0) continue;
+                boolean any = false;
+                for (int[] o : N4) if (!isTrans(src, x + o[0], y + o[1])) { any = true; break; }
+                if (!any) argb[y][x] = 0;
+            }
+    }
+
+    /** Réduit chaque canal à {@code levels} paliers (palette plus « pixel-art »). */
+    public void posterize(int levels) {
+        int lv = Math.max(2, levels);
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                int p = argb[y][x], a = p >>> 24;
+                if (a == 0) continue;
+                argb[y][x] = (a << 24) | (post((p >> 16) & 0xFF, lv) << 16)
+                        | (post((p >> 8) & 0xFF, lv) << 8) | post(p & 0xFF, lv);
+            }
+    }
+
+    /** Recentre le dessin (boîte englobante des pixels opaques) au milieu de la toile. */
+    public void centerContent() {
+        int minX = size, minY = size, maxX = -1, maxY = -1;
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                if ((argb[y][x] >>> 24) != 0) {
+                    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                }
+        if (maxX < 0) return;
+        int dx = (size - 1 - (minX + maxX)) / 2, dy = (size - 1 - (minY + maxY)) / 2;
+        if (dx != 0 || dy != 0) shift(dx, dy);
+    }
+
+    private boolean isTrans(int[][] s, int x, int y) { return !in(x, y) || (s[y][x] >>> 24) == 0; }
+
+    private static int scaleRgb(int argb, double f) {
+        int a = argb >>> 24;
+        return (a << 24) | (clampc(((argb >> 16) & 0xFF) * f) << 16)
+                | (clampc(((argb >> 8) & 0xFF) * f) << 8) | clampc((argb & 0xFF) * f);
+    }
+
+    private static int clampc(double v) { return (int) Math.max(0, Math.min(255, Math.round(v))); }
+
+    private static int post(int v, int levels) {
+        int step = 255 / (levels - 1);
+        return Math.min(255, Math.round((float) v / step) * step);
+    }
+
+    private static int lerpArgb(int a, int b, double t) {
+        return (lerp(a >>> 24, b >>> 24, t) << 24) | (lerp((a >> 16) & 0xFF, (b >> 16) & 0xFF, t) << 16)
+                | (lerp((a >> 8) & 0xFF, (b >> 8) & 0xFF, t) << 8) | lerp(a & 0xFF, b & 0xFF, t);
+    }
+
+    private static int lerp(int a, int b, double t) { return (int) Math.round(a + (b - a) * t); }
+
     public void load(int[][] src) {
         for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)

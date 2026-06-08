@@ -51,7 +51,9 @@ public final class PaintSettingsMenu implements InventoryHolder {
         inv.setItem(38, btn(Material.SPYGLASS, "<aqua>Pipette monde", "<gray>prendre la couleur d'un bloc autour"));
         inv.setItem(39, btn(Material.BOOKSHELF, "<aqua>Couleurs : " + PAGE_NAMES[page], "<dark_gray>clic = page suivante"));
         inv.setItem(40, btn(Material.NAME_TAG, "<aqua>Couleur hex…", "<gray>saisir #RRGGBB"));
-        inv.setItem(41, pane); inv.setItem(42, pane); inv.setItem(43, pane); inv.setItem(44, pane);
+        inv.setItem(41, btn(Material.NETHER_STAR, "<gradient:#8a2be2:#c77dff>Assistant avancé</gradient>",
+                "<gray>formes, transformations, effets, IA"));
+        inv.setItem(42, pane); inv.setItem(43, pane); inv.setItem(44, pane);
 
         // Contrôles (45..53).
         inv.setItem(45, btn(Material.BRUSH, "<yellow>Brosse : " + session.brush(), "<dark_gray>clic = +1"));
@@ -110,6 +112,7 @@ public final class PaintSettingsMenu implements InventoryHolder {
             }
             case 37 -> session.recolorToCurrent();
             case 38 -> { p.closeInventory(); session.enterWorldPick(); }
+            case 41 -> PaintAssistantMenu.open(session);
             case 39 -> { page = (page + 1) % PAGES; rebuild(); }
             case 40 -> {
                 p.closeInventory();

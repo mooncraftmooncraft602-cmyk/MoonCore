@@ -103,4 +103,12 @@ public final class PaintListener implements Listener {
         if (e.getClickedInventory() == null || !e.getClickedInventory().equals(e.getView().getTopInventory())) return;
         if (e.getWhoClicked() instanceof Player p) menu.click(p, e.getRawSlot(), e.isRightClick());
     }
+
+    @EventHandler
+    public void onAssistantClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof PaintAssistantMenu menu)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() == null || !e.getClickedInventory().equals(e.getView().getTopInventory())) return;
+        if (e.getWhoClicked() instanceof Player p) menu.click(p, e.getRawSlot());
+    }
 }

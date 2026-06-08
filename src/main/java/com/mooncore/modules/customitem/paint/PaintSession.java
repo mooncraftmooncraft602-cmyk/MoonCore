@@ -25,7 +25,7 @@ import java.util.UUID;
  */
 public final class PaintSession {
 
-    public enum Tool { PENCIL, ERASER, FILL, EYEDROPPER, LINE, NONE }
+    public enum Tool { PENCIL, ERASER, FILL, EYEDROPPER, LINE, RECT, ELLIPSE, GRADIENT, NONE }
 
     private final MoonCore plugin;
     private final PaintTarget target;
@@ -40,6 +40,8 @@ public final class PaintSession {
 
     private Tool currentTool = Tool.PENCIL;
     private int currentColor = 0xFF000000; // noir opaque
+    private int secondaryColor = 0xFFFFFFFF; // 2e couleur (dégradé)
+    private boolean shapeFilled = true;      // formes pleines vs contour
     private int brushSize = 1;
     private PixelCanvas.Symmetry symmetry = PixelCanvas.Symmetry.NONE;
     private int cursorX = -1, cursorY = -1;
@@ -76,18 +78,21 @@ public final class PaintSession {
         try {
             if (png != null && png.isFile()) {
                 java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(png);
-                if (img != null) {
-                    int n = canvas.size();
-                    int[][] grid = new int[n][n];
-                    for (int y = 0; y < n; y++)
-                        for (int x = 0; x < n; x++) {
-                            int sx = x * img.getWidth() / n, sy = y * img.getHeight() / n;
-                            grid[y][x] = img.getRGB(Math.min(sx, img.getWidth() - 1), Math.min(sy, img.getHeight() - 1));
-                        }
-                    canvas.load(grid);
-                }
+                if (img != null) loadFromImage(img);
             }
         } catch (Exception ignored) { }
+    }
+
+    /** Échantillonne une image (de n'importe quelle taille) vers la grille de la toile. */
+    private void loadFromImage(java.awt.image.BufferedImage img) {
+        int n = canvas.size();
+        int[][] grid = new int[n][n];
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++) {
+                int sx = x * img.getWidth() / n, sy = y * img.getHeight() / n;
+                grid[y][x] = img.getRGB(Math.min(sx, img.getWidth() - 1), Math.min(sy, img.getHeight() - 1));
+            }
+        canvas.load(grid);
     }
 
     // ---- Cycle de vie ----
@@ -246,6 +251,21 @@ public final class PaintSession {
                 } else {
                     canvas.pushHistory();
                     canvas.line(lineAnchor[0], lineAnchor[1], x, y, currentColor, brushSize, symmetry);
+                    lineAnchor = null;
+                }
+            }
+            case RECT, ELLIPSE, GRADIENT -> {
+                if (lineAnchor == null) {
+                    lineAnchor = new int[]{x, y};
+                    p.sendActionBar(Text.mm("<yellow>Premier coin posé — clique le coin opposé"));
+                } else {
+                    canvas.pushHistory();
+                    switch (currentTool) {
+                        case RECT -> canvas.rect(lineAnchor[0], lineAnchor[1], x, y, currentColor, shapeFilled, symmetry);
+                        case ELLIPSE -> canvas.ellipse(lineAnchor[0], lineAnchor[1], x, y, currentColor, shapeFilled, symmetry);
+                        case GRADIENT -> canvas.gradientFill(lineAnchor[0], lineAnchor[1], x, y, currentColor, secondaryColor);
+                        default -> { }
+                    }
                     lineAnchor = null;
                 }
             }
@@ -473,6 +493,73 @@ public final class PaintSession {
         dirty = true;
     }
     public void exit() { manager.close(owner); }
+
+    // ---- Assistant avancé : outils formes + opérations 1-clic + IA ----
+
+    public void setTool(Tool t, boolean filled) { this.currentTool = t; this.shapeFilled = filled; lineAnchor = null; }
+    public boolean shapeFilled() { return shapeFilled; }
+    public int secondaryColor() { return secondaryColor; }
+    public void setSecondaryColor(int argb) { this.secondaryColor = argb; }
+
+    private void op(Runnable r) { canvas.pushHistory(); r.run(); dirty = true; }
+    public void opFlipH() { op(canvas::flipHorizontal); }
+    public void opFlipV() { op(canvas::flipVertical); }
+    public void opRotate() { op(canvas::rotate90); }
+    public void opNudge(int dx, int dy) { op(() -> canvas.shift(dx, dy)); }
+    public void opOutline() { op(() -> canvas.outline(currentColor)); }
+    public void opAutoShade() { op(canvas::autoShade); }
+    public void opBrightness(double f) { op(() -> canvas.adjustBrightness(f)); }
+    public void opCleanup() { op(canvas::removeStray); }
+    public void opPosterize(int levels) { op(() -> canvas.posterize(levels)); }
+    public void opCenter() { op(canvas::centerContent); }
+
+    /** « Auto-amélioration » : recadre, nettoie, ombrage biseau et contour foncé. */
+    public void opEnhance() {
+        op(() -> {
+            canvas.removeStray();
+            canvas.centerContent();
+            canvas.autoShade();
+            canvas.outline(0xFF1A1A1A);
+        });
+        Player p = player();
+        if (p != null) p.sendActionBar(Text.mm("<green>Texture améliorée (nettoyage + ombrage + contour)"));
+    }
+
+    /** L'IA génère une texture depuis une description et la charge dans la toile (retouchable). */
+    public void generateFromAi(String desc) {
+        Player p = player();
+        var ai = plugin.moduleManager().get(com.mooncore.modules.ai.AiAdminModule.class);
+        if (ai == null || !ai.client().config().hasApiKey()) {
+            if (p != null) p.sendMessage(Text.mm("<red>IA non configurée (modules/ai-assistant.yml → api-key)."));
+            return;
+        }
+        if (p != null) p.sendMessage(Text.mm("<gray>🎨 L'IA dessine « <white>" + desc + "</white> »…"));
+        ai.client().generateTexture(aiPrompt(desc), true).whenComplete((png, err) -> plugin.schedulers().sync(() -> {
+            Player pl = player();
+            if (png == null) {
+                Throwable c = err == null ? null : (err.getCause() != null ? err.getCause() : err);
+                if (pl != null) pl.sendMessage(Text.mm("<yellow>⚠ Texture IA non générée" + (c != null ? " : " + c.getMessage() : "") + "."));
+                return;
+            }
+            try {
+                java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(png));
+                if (img == null) { if (pl != null) pl.sendMessage(Text.mm("<yellow>⚠ Image IA illisible.")); return; }
+                canvas.pushHistory();
+                loadFromImage(img);
+                dirty = true;
+                if (pl != null) pl.sendMessage(Text.mm("<green>Texture IA chargée dans la toile — retouche-la puis sauve."));
+            } catch (Exception ex) {
+                if (pl != null) pl.sendMessage(Text.mm("<red>Erreur chargement IA : " + ex.getMessage()));
+            }
+        }));
+    }
+
+    private static String aiPrompt(String desc) {
+        return "true 16-bit PIXEL ART game item icon of " + com.mooncore.util.Text.strip(desc) + ". "
+                + "Hard pixel edges, limited color palette, NO anti-aliasing, NO gradients, NO blur. "
+                + "Single centered object, flat front view, thick readable silhouette, "
+                + "pure solid white background (#FFFFFF), no shadow, no text, no border. Minecraft style.";
+    }
 
     // ---- Accès ----
 
