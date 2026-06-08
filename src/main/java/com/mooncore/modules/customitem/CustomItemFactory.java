@@ -70,7 +70,11 @@ public final class CustomItemFactory {
         }
         if (def.unbreakable()) {
             meta.setUnbreakable(true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
         }
+        // On masque l'affichage vanilla des attributs (« +13 Attack Damage »…) : nos stats sont
+        // déjà listées dans la section « Statistiques » → évite le doublon et raccourcit l'infobulle.
+        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
 
         // Attributs vanilla (s'appliquent serveur-side → identiques Java/Bedrock).
         applyAttributes(def, meta);
@@ -99,25 +103,28 @@ public final class CustomItemFactory {
             }
         }
 
-        // Capacités.
+        // Capacités. Affichage COMPACT dès qu'il y en a beaucoup (sinon l'infobulle déborde
+        // de l'écran) : 1 ligne par capacité, descriptions seulement s'il y en a peu, et on
+        // plafonne le nombre de lignes affichées (« +N autres »).
         if (!def.abilities().isEmpty()) {
+            List<CustomItemDef.AbilityRef> refs = def.abilities();
+            int n = refs.size();
+            int maxShown = 14;                // garde-fou anti-débordement de l'infobulle
             lore.add(Component.empty());
-            lore.add(line("<gray>Capacités :"));
-            for (CustomItemDef.AbilityRef ref : def.abilities()) {
+            lore.add(line("<gray>Capacités <dark_gray>(" + n + ") :"));
+            int shown = Math.min(n, maxShown);
+            // 1 SEULE ligne par capacité, SANS description (l'infobulle débordait de l'écran ;
+            // les descriptions restent visibles dans l'éditeur de capacités).
+            for (int i = 0; i < shown; i++) {
+                CustomItemDef.AbilityRef ref = refs.get(i);
                 Ability ab = abilities.get(ref.id());
                 String name = ab != null ? ab.displayName() : ref.id();
-                String desc = ab != null ? ab.description() : "";
-                String tag = (ab != null && ab.isActive()) ? "<gold>[Actif]" : "<aqua>[Passif]";
+                String tag = (ab != null && ab.isActive()) ? "<gold>⚡" : "<aqua>✦";
                 lore.add(line(" " + tag + " <yellow>" + name + " <gray>" + roman(ref.level())));
-                if (!desc.isEmpty()) {
-                    lore.add(line("   <dark_gray>" + desc));
-                }
             }
-            if (def.abilities().stream().anyMatch(r -> {
-                Ability a = abilities.get(r.id());
-                return a != null && a.isActive();
-            })) {
-                lore.add(line("   <dark_gray><italic>Clic droit pour activer"));
+            if (n > maxShown) lore.add(line(" <dark_gray>+ " + (n - maxShown) + " autre(s)…"));
+            if (refs.stream().anyMatch(r -> { Ability a = abilities.get(r.id()); return a != null && a.isActive(); })) {
+                lore.add(line(" <dark_gray><italic>Clic droit = capacité active"));
             }
         }
 

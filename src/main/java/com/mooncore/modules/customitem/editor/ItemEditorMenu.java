@@ -70,6 +70,10 @@ public final class ItemEditorMenu implements InventoryHolder {
         inv.setItem(29, btn(Material.ANVIL, "<gold>Stats", "<gray>" + d.stats().size() + " active(s)", "<dark_gray>clic = éditer"));
         inv.setItem(30, btn(Material.ENCHANTED_BOOK, "<gold>Capacités", "<gray>" + d.abilities().size(), "<dark_gray>clic = éditer"));
         inv.setItem(31, btn(Material.BRUSH, "<light_purple>🎨 Texture", "<dark_gray>dessiner / éditer en jeu"));
+        inv.setItem(32, btn(Material.FURNACE, "<yellow>Fonte : " + (d.canSmelt()
+                        ? "<green>→ " + d.smeltsInto().name() + " ×" + d.smeltAmount() : "<red>non fondable"),
+                "<gray>clic = définir le résultat (ex <white>IRON_INGOT</white> ou <white>GOLD_NUGGET 2</white>)",
+                "<dark_gray>clic droit = désactiver la fonte"));
         inv.setItem(33, btn(Material.CHEST, "<green>📦 Recevoir l'objet"));
         inv.setItem(49, btn(Material.BARRIER, "<red>Fermer"));
     }
@@ -104,6 +108,29 @@ public final class ItemEditorMenu implements InventoryHolder {
             case 29 -> StatEditorMenu.open(module, chat, p, id);
             case 30 -> AbilityEditorMenu.open(module, chat, p, id);
             case 31 -> openTexture(p);
+            case 32 -> {
+                if (right) {
+                    d.clearSmelt(); module.put(d); refreshRecipes();
+                    p.sendActionBar(Text.mm("<gray>Fonte désactivée")); refresh();
+                } else {
+                    p.closeInventory();
+                    chat.request(p, "<yellow>Résultat de fonte (ex <white>IRON_INGOT</white> ou <white>GOLD_NUGGET 2</white>, ou <white>aucun</white>) :", in -> {
+                        String[] parts = in.trim().split("\\s+");
+                        if (parts.length == 0 || parts[0].equalsIgnoreCase("aucun") || parts[0].equalsIgnoreCase("none")) {
+                            d.clearSmelt();
+                        } else {
+                            Material m = Material.matchMaterial(parts[0].toUpperCase(java.util.Locale.ROOT));
+                            if (m == null || !m.isItem()) { p.sendMessage(Text.mm("<red>Matériau invalide : " + parts[0])); reopen(p); return; }
+                            int amt = 1;
+                            if (parts.length > 1) try { amt = Integer.parseInt(parts[1]); } catch (NumberFormatException ignored) { }
+                            d.setSmeltsInto(m, amt);
+                            p.sendMessage(Text.mm("<green>Fonte : <white>" + id + " <gray>→ <white>" + m.name() + " ×" + d.smeltAmount()
+                                    + " <gray>(au four)"));
+                        }
+                        module.put(d); refreshRecipes(); reopen(p);
+                    });
+                }
+            }
             case 33 -> { module.give(p, id, 1); p.sendMessage(Text.mm("<green>Reçu : <reset>" + d.displayName())); }
             case 49 -> p.closeInventory();
             default -> { }
@@ -122,6 +149,12 @@ public final class ItemEditorMenu implements InventoryHolder {
     private void reopen(Player p) { if (p.isOnline()) open(module, chat, p, id); }
 
     private void refresh() { build(); }
+
+    /** Ré-enregistre les recettes (artisanat + fonte) après un changement de fonte. */
+    private void refreshRecipes() {
+        try { module.recipeManager().unregisterAll(); module.recipeManager().registerAll(); }
+        catch (Exception ignored) { }
+    }
 
     // ---- helpers ----
 

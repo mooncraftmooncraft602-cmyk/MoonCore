@@ -94,6 +94,8 @@ public final class CustomItemDef implements CustomItemView {
     private final List<AbilityRef> abilities = new ArrayList<>();
     private final List<DropRule> drops = new ArrayList<>();
     private Recipe recipe = null;
+    private Material smeltsInto = null;          // null = ne fond pas (pas de recette de fournaise)
+    private int smeltAmount = 1;
 
     public CustomItemDef(String id) {
         this.id = id.toLowerCase(Locale.ROOT);
@@ -148,6 +150,16 @@ public final class CustomItemDef implements CustomItemView {
     public Recipe recipe() { return recipe; }
     public void setRecipe(Recipe recipe) { this.recipe = recipe; }
 
+    // ---- Fonte (l'objet comme entrée de fournaise) ----
+    public Material smeltsInto() { return smeltsInto; }
+    public int smeltAmount() { return smeltAmount; }
+    public boolean canSmelt() { return smeltsInto != null; }
+    public void setSmeltsInto(Material result, int amount) {
+        this.smeltsInto = result;
+        this.smeltAmount = Math.max(1, Math.min(64, amount));
+    }
+    public void clearSmelt() { this.smeltsInto = null; this.smeltAmount = 1; }
+
     public void setStat(String key, double value) {
         stats.put(key.toLowerCase(Locale.ROOT), value);
     }
@@ -200,6 +212,8 @@ public final class CustomItemDef implements CustomItemView {
             r.amount = this.recipe.amount;
             c.recipe = r;
         }
+        c.smeltsInto = this.smeltsInto;
+        c.smeltAmount = this.smeltAmount;
         return c;
     }
 
@@ -254,6 +268,13 @@ public final class CustomItemDef implements CustomItemView {
             }
         } else {
             s.set("recipe", null);
+        }
+
+        if (smeltsInto != null) {
+            s.set("smelt.result", smeltsInto.name());
+            s.set("smelt.amount", smeltAmount);
+        } else {
+            s.set("smelt", null);
         }
     }
 
@@ -314,6 +335,12 @@ public final class CustomItemDef implements CustomItemView {
                 }
             }
             d.recipe = rec;
+        }
+
+        ConfigurationSection sm = s.getConfigurationSection("smelt");
+        if (sm != null) {
+            Material rm = matchMaterial(sm.getString("result"));
+            if (rm != null) d.setSmeltsInto(rm, sm.getInt("amount", 1));
         }
         return d;
     }

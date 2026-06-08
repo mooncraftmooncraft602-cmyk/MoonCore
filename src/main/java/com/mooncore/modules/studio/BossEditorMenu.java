@@ -65,6 +65,7 @@ public final class BossEditorMenu implements StudioMenu {
         inv.setItem(12, StudioItems.btn(Material.BRUSH, "<light_purple>Texture boss"));
         inv.setItem(13, StudioItems.btn(Material.MAP, "<green>Rebuild pack"));
         inv.setItem(14, StudioItems.btn(Material.BEACON, "<aqua>Couleur barre : <white>" + def.barColor(), "<gray>clic = suivant"));
+        inv.setItem(15, StudioItems.btn(Material.CHEST, "<gold>Drops du boss", "<gray>choisir les objets lâchés + leur chance"));
         inv.setItem(16, StudioItems.btn(Material.OAK_DOOR, "<yellow>Retour"));
 
         inv.setItem(19, StudioItems.btn(Material.RED_DYE, "<red>PV max : <white>" + (int) def.maxHealth(), "<gray>clic = +50 · clic droit = -50", "<gray>shift = x5"));
@@ -93,6 +94,7 @@ public final class BossEditorMenu implements StudioMenu {
             case 12 -> paint(plugin, chat, p, id);
             case 13 -> StudioItems.rebuildAndResend(plugin, p);
             case 14 -> { module.setField(id, "bar-color", nextBar(def.barColor())); build(); }
+            case 15 -> BossDropMenu.open(plugin, chat, p, id, 0);
             case 16 -> StudioBossMenu.open(plugin, chat, p, 0);
             case 19 -> { module.setField(id, "max-health", Math.max(10, def.maxHealth() + (rightClick ? -50 : 50) * (shiftClick ? 5 : 1))); build(); }
             case 20 -> { module.setField(id, "damage", Math.max(1, Math.min(40, def.damage() + (rightClick ? -1 : 1)))); build(); }

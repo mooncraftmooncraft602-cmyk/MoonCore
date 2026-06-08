@@ -30,6 +30,25 @@ public final class RecipeManager {
     public void registerAll() {
         for (CustomItemDef def : module.rawDefs().values()) {
             register(def);
+            registerSmelt(def);
+        }
+    }
+
+    /** Recette de FOURNAISE : l'objet custom (exact) → résultat configuré (def.smeltsInto). */
+    public boolean registerSmelt(CustomItemDef def) {
+        if (!def.canSmelt() || def.smeltsInto() == null) return false;
+        NamespacedKey key = new NamespacedKey(plugin, "ci_smelt_" + def.id());
+        try {
+            ItemStack result = new ItemStack(def.smeltsInto(), Math.max(1, def.smeltAmount()));
+            RecipeChoice input = new RecipeChoice.ExactChoice(module.buildItem(def, 1));
+            org.bukkit.inventory.FurnaceRecipe recipe =
+                    new org.bukkit.inventory.FurnaceRecipe(key, result, input, 0.2f, 200);
+            plugin.getServer().addRecipe(recipe);
+            registered.add(key);
+            return true;
+        } catch (Exception e) {
+            plugin.logger().warn("Recette de fonte invalide pour " + def.id() + " : " + e.getMessage());
+            return false;
         }
     }
 
