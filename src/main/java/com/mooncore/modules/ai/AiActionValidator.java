@@ -203,7 +203,7 @@ public final class AiActionValidator {
                 if (k.isEmpty()) continue;
                 Material m = Material.matchMaterial(ing.get(k).getAsString().toUpperCase(Locale.ROOT));
                 if (m == null) { warnings.add("Ingrédient invalide ignoré : " + k); continue; }
-                recipe.ingredients.put(k.charAt(0), m);
+                recipe.ingredients.put(k.charAt(0), CustomItemDef.RecipeIngredient.material(m));
             }
         }
         return recipe.isEmpty() ? null : recipe;

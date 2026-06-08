@@ -26,11 +26,51 @@ public final class CustomItemDef implements CustomItemView {
     /** Règle de drop : source = "boss:<id>" | "mob:<ENTITY_TYPE>" | "event:<id>". */
     public record DropRule(String source, double chance, int min, int max) {}
 
-    /** Recette d'artisanat (shaped 3x3). Les ingrédients mappent char → Material. */
+    /** Ingredient de recette : material vanilla ou item custom exact. */
+    public record RecipeIngredient(Material material, String customItemId) {
+        public RecipeIngredient {
+            if (customItemId != null) {
+                customItemId = customItemId.toLowerCase(Locale.ROOT).trim();
+                if (customItemId.isBlank()) customItemId = null;
+            }
+        }
+
+        public static RecipeIngredient material(Material material) {
+            return new RecipeIngredient(material, null);
+        }
+
+        public static RecipeIngredient custom(String customItemId) {
+            return new RecipeIngredient(null, customItemId);
+        }
+
+        public static RecipeIngredient parse(String raw) {
+            if (raw == null || raw.isBlank()) return null;
+            String value = raw.trim();
+            String lower = value.toLowerCase(Locale.ROOT);
+            if (lower.startsWith("custom:")) return custom(value.substring("custom:".length()));
+            if (lower.startsWith("item:")) return custom(value.substring("item:".length()));
+            Material mat = matchMaterial(value);
+            return mat == null || !mat.isItem() ? null : material(mat);
+        }
+
+        public boolean isCustom() {
+            return customItemId != null;
+        }
+
+        public String storageKey() {
+            return isCustom() ? "custom:" + customItemId : material.name();
+        }
+
+        @Override
+        public String toString() {
+            return storageKey();
+        }
+    }
+
     public static final class Recipe {
         public boolean shaped = true;
         public List<String> shape = new ArrayList<>(List.of("   ", "   ", "   "));
-        public Map<Character, Material> ingredients = new LinkedHashMap<>();
+        public Map<Character, RecipeIngredient> ingredients = new LinkedHashMap<>();
         public int amount = 1;
 
         public boolean isEmpty() {
@@ -170,8 +210,8 @@ public final class CustomItemDef implements CustomItemView {
             rs.set("shape", recipe.shape);
             rs.set("amount", recipe.amount);
             ConfigurationSection ing = rs.createSection("ingredients");
-            for (Map.Entry<Character, Material> e : recipe.ingredients.entrySet()) {
-                ing.set(String.valueOf(e.getKey()), e.getValue().name());
+            for (Map.Entry<Character, RecipeIngredient> e : recipe.ingredients.entrySet()) {
+                ing.set(String.valueOf(e.getKey()), e.getValue().storageKey());
             }
         } else {
             s.set("recipe", null);
@@ -226,8 +266,8 @@ public final class CustomItemDef implements CustomItemView {
             ConfigurationSection ing = rs.getConfigurationSection("ingredients");
             if (ing != null) {
                 for (String k : ing.getKeys(false)) {
-                    Material im = matchMaterial(ing.getString(k));
-                    if (im != null && !k.isEmpty()) rec.ingredients.put(k.charAt(0), im);
+                    RecipeIngredient ingredient = RecipeIngredient.parse(ing.getString(k));
+                    if (ingredient != null && !k.isEmpty()) rec.ingredients.put(k.charAt(0), ingredient);
                 }
             }
             d.recipe = rec;

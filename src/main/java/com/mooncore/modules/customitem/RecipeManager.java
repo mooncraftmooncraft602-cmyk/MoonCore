@@ -43,14 +43,18 @@ public final class RecipeManager {
                 ShapedRecipe recipe = new ShapedRecipe(key, result);
                 List<String> shape = normalizeShape(r.shape);
                 recipe.shape(shape.toArray(new String[0]));
-                for (Map.Entry<Character, org.bukkit.Material> e : r.ingredients.entrySet()) {
-                    recipe.setIngredient(e.getKey(), new RecipeChoice.MaterialChoice(e.getValue()));
+                for (Map.Entry<Character, CustomItemDef.RecipeIngredient> e : r.ingredients.entrySet()) {
+                    RecipeChoice choice = choiceFor(e.getValue());
+                    if (choice == null) throw new IllegalArgumentException("ingredient introuvable: " + e.getValue());
+                    recipe.setIngredient(e.getKey(), choice);
                 }
                 plugin.getServer().addRecipe(recipe);
             } else {
                 ShapelessRecipe recipe = new ShapelessRecipe(key, result);
-                for (org.bukkit.Material m : r.ingredients.values()) {
-                    recipe.addIngredient(new RecipeChoice.MaterialChoice(m));
+                for (CustomItemDef.RecipeIngredient ingredient : r.ingredients.values()) {
+                    RecipeChoice choice = choiceFor(ingredient);
+                    if (choice == null) throw new IllegalArgumentException("ingredient introuvable: " + ingredient);
+                    recipe.addIngredient(choice);
                 }
                 plugin.getServer().addRecipe(recipe);
             }
@@ -60,6 +64,17 @@ public final class RecipeManager {
             plugin.logger().warn("Recette invalide pour l'objet custom " + def.id() + " : " + e.getMessage());
             return false;
         }
+    }
+
+    private RecipeChoice choiceFor(CustomItemDef.RecipeIngredient ingredient) {
+        if (ingredient == null) return null;
+        if (ingredient.isCustom()) {
+            CustomItemDef def = module.rawDef(ingredient.customItemId());
+            if (def == null) return null;
+            return new RecipeChoice.ExactChoice(module.buildItem(def, 1));
+        }
+        org.bukkit.Material material = ingredient.material();
+        return material == null || !material.isItem() ? null : new RecipeChoice.MaterialChoice(material);
     }
 
     /** Garantit exactement 3 lignes de 3 caractères (les espaces = slots vides). */

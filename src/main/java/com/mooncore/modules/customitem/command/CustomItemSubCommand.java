@@ -376,9 +376,9 @@ public final class CustomItemSubCommand implements SubCommand {
         for (int i = 6; i < a.length; i++) {
             String[] kv = a[i].split("=", 2);
             if (kv.length != 2 || kv[0].isEmpty()) continue;
-            Material m = Material.matchMaterial(kv[1].toUpperCase(Locale.ROOT));
-            if (m == null) { msg(s, "<red>Matériau inconnu : " + kv[1]); return; }
-            r.ingredients.put(kv[0].charAt(0), m);
+            CustomItemDef.RecipeIngredient ingredient = CustomItemDef.RecipeIngredient.parse(kv[1]);
+            if (ingredient == null) { msg(s, "<red>Ingredient inconnu : " + kv[1]); return; }
+            r.ingredients.put(kv[0].charAt(0), ingredient);
         }
         d.setRecipe(r); module.put(d);
         module.recipeManager().unregisterAll(); module.recipeManager().registerAll();
