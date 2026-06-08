@@ -111,4 +111,12 @@ public final class PaintListener implements Listener {
         if (e.getClickedInventory() == null || !e.getClickedInventory().equals(e.getView().getTopInventory())) return;
         if (e.getWhoClicked() instanceof Player p) menu.click(p, e.getRawSlot());
     }
+
+    @EventHandler
+    public void onTemplatesClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof PaintTemplatesMenu menu)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() == null || !e.getClickedInventory().equals(e.getView().getTopInventory())) return;
+        if (e.getWhoClicked() instanceof Player p) menu.click(p, e.getRawSlot());
+    }
 }

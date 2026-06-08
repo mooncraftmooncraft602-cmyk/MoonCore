@@ -292,6 +292,67 @@ public final class PixelCanvas {
         if (dx != 0 || dy != 0) shift(dx, dy);
     }
 
+    /** Écrit un pixel direct (sans symétrie) — utilisé par les modèles/tampons. */
+    public void put(int x, int y, int argb) { plot(x, y, argb); }
+
+    /** Inverse les couleurs des pixels opaques (négatif). */
+    public void invert() {
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                int p = argb[y][x], a = p >>> 24;
+                if (a != 0) argb[y][x] = (a << 24) | (~p & 0xFFFFFF);
+            }
+    }
+
+    /** Décale la teinte de tous les pixels opaques (degrés). */
+    public void shiftHue(double degrees) {
+        float d = (float) (degrees / 360.0);
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                int p = argb[y][x], a = p >>> 24;
+                if (a == 0) continue;
+                float[] hsb = java.awt.Color.RGBtoHSB((p >> 16) & 0xFF, (p >> 8) & 0xFF, p & 0xFF, null);
+                argb[y][x] = (a << 24) | (java.awt.Color.HSBtoRGB((hsb[0] + d) % 1f, hsb[1], hsb[2]) & 0xFFFFFF);
+            }
+    }
+
+    /** Multiplie la saturation des pixels opaques (1.0 = inchangé, 0 = gris). */
+    public void adjustSaturation(double f) {
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                int p = argb[y][x], a = p >>> 24;
+                if (a == 0) continue;
+                float[] hsb = java.awt.Color.RGBtoHSB((p >> 16) & 0xFF, (p >> 8) & 0xFF, p & 0xFF, null);
+                float s = (float) Math.max(0, Math.min(1, hsb[1] * f));
+                argb[y][x] = (a << 24) | (java.awt.Color.HSBtoRGB(hsb[0], s, hsb[2]) & 0xFFFFFF);
+            }
+    }
+
+    /** Bruit de luminosité (±amount %) sur les pixels opaques — utile pour les blocs (grain). */
+    public void addNoise(int amount) {
+        java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                if ((argb[y][x] >>> 24) != 0)
+                    argb[y][x] = scaleRgb(argb[y][x], 1.0 + (r.nextInt(2 * amount + 1) - amount) / 100.0);
+    }
+
+    /** Rend la toile symétrique en recopiant une moitié sur l'autre. */
+    public void symmetrize(boolean horizontal) {
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++) {
+                if (horizontal) { if (x < size / 2) argb[y][size - 1 - x] = argb[y][x]; }
+                else { if (y < size / 2) argb[size - 1 - y][x] = argb[y][x]; }
+            }
+    }
+
+    /** Remplit tous les pixels transparents (fond) avec {@code color}. */
+    public void fillBackground(int color) {
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                if ((argb[y][x] >>> 24) == 0) argb[y][x] = color;
+    }
+
     private boolean isTrans(int[][] s, int x, int y) { return !in(x, y) || (s[y][x] >>> 24) == 0; }
 
     private static int scaleRgb(int argb, double f) {

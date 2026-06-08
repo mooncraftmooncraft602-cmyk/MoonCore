@@ -46,6 +46,17 @@ public final class PaintAssistantMenu implements InventoryHolder {
                 "<dark_gray>2 clics : sens du dégradé"));
         inv.setItem(6, swatch(session.secondaryColor(), "<aqua>Couleur 2 (dégradé) : #"
                 + String.format("%06X", session.secondaryColor() & 0xFFFFFF), "<dark_gray>clic = prendre la couleur actuelle"));
+        inv.setItem(8, btn(Material.CHEST, "<gold>Modèles & tampons", "<gray>bases d'objet + formes prêtes"));
+
+        // Ligne 2 : couleurs (teinte/saturation/inversion/bruit/symétrie/fond).
+        inv.setItem(9, btn(Material.QUARTZ, "<light_purple>Inverser les couleurs"));
+        inv.setItem(10, btn(Material.CYAN_DYE, "<light_purple>Teinte -30°"));
+        inv.setItem(11, btn(Material.MAGENTA_DYE, "<light_purple>Teinte +30°"));
+        inv.setItem(12, btn(Material.LIME_DYE, "<light_purple>Saturation +"));
+        inv.setItem(13, btn(Material.GRAY_DYE, "<light_purple>Saturation -"));
+        inv.setItem(14, btn(Material.GUNPOWDER, "<light_purple>Bruit / grain", "<gray>idéal pour les blocs"));
+        inv.setItem(15, btn(Material.NAME_TAG, "<light_purple>Symétriser ↔", "<gray>copie la moitié gauche à droite"));
+        inv.setItem(16, btn(Material.BUCKET, "<light_purple>Remplir le fond", "<gray>couleur actuelle dans le vide"));
 
         // Ligne 3 : transformations.
         inv.setItem(18, btn(Material.NAME_TAG, "<yellow>Miroir ↔ horizontal"));
@@ -83,6 +94,15 @@ public final class PaintAssistantMenu implements InventoryHolder {
             case 5 -> selectShape(p, PaintSession.Tool.GRADIENT, true, "Dégradé");
             case 6 -> { session.setSecondaryColor(session.color()); rebuild();
                 p.sendActionBar(Text.mm("<aqua>Couleur 2 = #" + String.format("%06X", session.color() & 0xFFFFFF))); }
+            case 8 -> PaintTemplatesMenu.open(session);
+            case 9 -> { session.opInvert(); feedback(p, "Couleurs inversées"); }
+            case 10 -> { session.opHueShift(-30); feedback(p, "Teinte -30°"); }
+            case 11 -> { session.opHueShift(30); feedback(p, "Teinte +30°"); }
+            case 12 -> { session.opSaturation(1.25); feedback(p, "Saturation +"); }
+            case 13 -> { session.opSaturation(0.8); feedback(p, "Saturation -"); }
+            case 14 -> { session.opNoise(); feedback(p, "Grain ajouté"); }
+            case 15 -> { session.opSymmetrize(true); feedback(p, "Symétrisé ↔"); }
+            case 16 -> { session.opFillBackground(); feedback(p, "Fond rempli"); }
             case 18 -> { session.opFlipH(); feedback(p, "Miroir horizontal"); }
             case 19 -> { session.opFlipV(); feedback(p, "Miroir vertical"); }
             case 20 -> { session.opRotate(); feedback(p, "Rotation 90°"); }

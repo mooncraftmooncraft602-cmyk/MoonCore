@@ -512,6 +512,26 @@ public final class PaintSession {
     public void opCleanup() { op(canvas::removeStray); }
     public void opPosterize(int levels) { op(() -> canvas.posterize(levels)); }
     public void opCenter() { op(canvas::centerContent); }
+    public void opInvert() { op(canvas::invert); }
+    public void opHueShift(double deg) { op(() -> canvas.shiftHue(deg)); }
+    public void opSaturation(double f) { op(() -> canvas.adjustSaturation(f)); }
+    public void opNoise() { op(() -> canvas.addNoise(12)); }
+    public void opSymmetrize(boolean horizontal) { op(() -> canvas.symmetrize(horizontal)); }
+    public void opFillBackground() { op(() -> canvas.fillBackground(currentColor)); }
+
+    /** Dessine une base d'objet (épée, pioche, gemme…) dans la couleur courante (efface la toile). */
+    public void applyBase(String id) {
+        op(() -> com.mooncore.modules.customitem.paint.TextureTemplates.base(canvas, id, currentColor, secondaryColor));
+        Player p = player();
+        if (p != null) p.sendActionBar(Text.mm("<green>Base « " + TextureTemplates.label(id) + " » dessinée — recolorise/détaille à ta guise"));
+    }
+
+    /** Dépose un tampon de forme (cercle, cœur, étoile…) dans la couleur courante (sans effacer). */
+    public void applyStamp(String id) {
+        op(() -> com.mooncore.modules.customitem.paint.TextureTemplates.stamp(canvas, id, currentColor));
+        Player p = player();
+        if (p != null) p.sendActionBar(Text.mm("<green>Tampon « " + TextureTemplates.label(id) + " » appliqué"));
+    }
 
     /** « Auto-amélioration » : recadre, nettoie, ombrage biseau et contour foncé. */
     public void opEnhance() {
