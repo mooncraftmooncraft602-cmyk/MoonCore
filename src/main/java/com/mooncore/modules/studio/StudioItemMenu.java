@@ -5,6 +5,8 @@ import com.mooncore.modules.customitem.CustomItemDef;
 import com.mooncore.modules.customitem.CustomItemDefStore;
 import com.mooncore.modules.customitem.CustomItemManagerModule;
 import com.mooncore.modules.customitem.CustomItemMenu;
+import com.mooncore.modules.customitem.ToolKind;
+import com.mooncore.modules.customitem.ToolTier;
 import com.mooncore.modules.customitem.editor.ItemEditorMenu;
 import com.mooncore.modules.customitem.paint.ItemPaintTarget;
 import com.mooncore.util.ChatInput;
@@ -84,7 +86,10 @@ public final class StudioItemMenu implements StudioMenu {
                     String id = StudioItems.slug(in);
                     if (!CustomItemDefStore.isValidId(id)) { p.sendMessage(Text.mm("<red>Id invalide.")); return; }
                     if (module.rawDef(id) != null) { p.sendMessage(Text.mm("<red>Cet item existe déjà.")); return; }
-                    module.put(new CustomItemDef(id));
+                    CustomItemDef def = new CustomItemDef(id);
+                    ToolKind hint = ToolKind.fromText(id);
+                    if (hint != ToolKind.NONE) def.setTool(hint, ToolTier.IRON);
+                    module.put(def);
                     ItemEditorMenu.open(module, module.chatInput(), p, id);
                 });
             }

@@ -4,6 +4,8 @@ import com.mooncore.MoonCore;
 import com.mooncore.command.SubCommand;
 import com.mooncore.modules.customblock.CustomBlockDef;
 import com.mooncore.modules.customblock.CustomBlockManagerModule;
+import com.mooncore.modules.customitem.ToolKind;
+import com.mooncore.modules.customitem.ToolTier;
 import com.mooncore.util.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -42,6 +44,8 @@ public final class CustomBlockSubCommand implements SubCommand {
                 case "give" -> give(s, a);
                 case "get" -> get(s, a);
                 case "drop" -> setDrop(s, a);
+                case "tool" -> setTool(s, a);
+                case "hardness", "durability", "resistance" -> setHardness(s, a);
                 case "face" -> setFace(s, a);
                 case "worldgen" -> worldgen(s, a);
                 case "pack" -> pack(s);
@@ -94,8 +98,11 @@ public final class CustomBlockSubCommand implements SubCommand {
         msg(s, "<gradient:#8a2be2:#c77dff>" + d.id() + "</gradient>");
         msg(s, " <gray>Nom : <reset>" + d.displayName());
         msg(s, " <gray>État note-block : <white>" + d.stateIndex() + " <gray>Modèle : <white>" + d.modelKey());
-        msg(s, " <gray>Drop : <white>" + (d.dropItemId() == null ? "lui-même" : d.dropItemId())
-                + " <gray>XP : <white>" + d.dropXp() + " <gray>Pioche requise : <white>" + d.requiresPickaxe());
+        msg(s, " <gray>Drop : <white>" + (d.dropItemId() == null ? "lui-meme" : d.dropItemId())
+                + " <gray>XP : <white>" + d.dropXp());
+        msg(s, " <gray>Outil : <white>" + (d.requiredTool() == ToolKind.NONE ? "aucun" : d.requiredTool().label() + " " + d.minToolTier().label() + "+")
+                + " <gray>Durabilite : <white>" + d.breakDurability()
+                + " <gray>Resistance explosion : <white>" + d.blastResistance());
         msg(s, " <gray>Worldgen : <white>" + (d.generate()
                 ? "oui (remplace " + d.replace().name() + ", Y " + d.minY() + "→" + d.maxY()
                   + ", " + d.veinsPerChunk() + " veine(s)/chunk, taille " + d.veinSize() + ")"
@@ -129,6 +136,29 @@ public final class CustomBlockSubCommand implements SubCommand {
         if (a.length >= 4) d.setDropXp(Integer.parseInt(a[3]));
         module.put(d);
         msg(s, "<green>Drop de " + d.id() + " = " + (d.dropItemId() == null ? "lui-même" : d.dropItemId()) + " (xp " + d.dropXp() + ")");
+    }
+
+    private void setTool(CommandSender s, String[] a) {
+        if (a.length < 3) { msg(s, "<red>/moon block tool <id> <none|pickaxe|axe|shovel|hoe> [wood|stone|iron|gold|diamond|netherite]"); return; }
+        CustomBlockDef d = module.rawDef(a[1]);
+        if (d == null) { msg(s, "<red>Id inconnu."); return; }
+        ToolKind tool = ToolKind.fromId(a[2]);
+        d.setRequiredTool(tool);
+        if (a.length >= 4) d.setMinToolTier(ToolTier.fromId(a[3]));
+        module.put(d);
+        msg(s, "<green>Outil requis de " + d.id() + " = <white>"
+                + (d.requiredTool() == ToolKind.NONE ? "aucun" : d.requiredTool().label() + " " + d.minToolTier().label() + "+"));
+    }
+
+    private void setHardness(CommandSender s, String[] a) {
+        if (a.length < 3) { msg(s, "<red>/moon block hardness <id> <durabilite> [resistanceExplosion]"); return; }
+        CustomBlockDef d = module.rawDef(a[1]);
+        if (d == null) { msg(s, "<red>Id inconnu."); return; }
+        d.setBreakDurability(Integer.parseInt(a[2]));
+        if (a.length >= 4) d.setBlastResistance(Double.parseDouble(a[3]));
+        module.put(d);
+        msg(s, "<green>Durete de " + d.id() + " = <white>" + d.breakDurability()
+                + " <gray>/ resistance explosion <white>" + d.blastResistance());
     }
 
     private void importVanilla(CommandSender s) {
@@ -235,12 +265,12 @@ public final class CustomBlockSubCommand implements SubCommand {
     @Override
     public List<String> tabComplete(MoonCore plugin, CommandSender s, String[] a) {
         if (a.length == 1) {
-            return filter(List.of("create", "paint", "importvanilla", "delete", "list", "info", "give", "get", "drop", "face", "worldgen", "pack", "reload"), a[0]);
+            return filter(List.of("create", "paint", "importvanilla", "delete", "list", "info", "give", "get", "drop", "tool", "hardness", "durability", "resistance", "face", "worldgen", "pack", "reload"), a[0]);
         }
         String sub = a[0].toLowerCase(Locale.ROOT);
         if (a.length == 2) {
             return switch (sub) {
-                case "delete", "info", "get", "drop", "worldgen", "paint", "face" -> filter(new ArrayList<>(module.ids()), a[1]);
+                case "delete", "info", "get", "drop", "tool", "hardness", "durability", "resistance", "worldgen", "paint", "face" -> filter(new ArrayList<>(module.ids()), a[1]);
                 case "give" -> filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), a[1]);
                 default -> List.of();
             };
@@ -250,8 +280,12 @@ public final class CustomBlockSubCommand implements SubCommand {
                 case "give" -> filter(new ArrayList<>(module.ids()), a[2]);
                 case "worldgen" -> filter(List.of("on", "off"), a[2]);
                 case "face" -> filter(List.of("top", "side", "bottom", "reset"), a[2]);
+                case "tool" -> filter(List.of("none", "pickaxe", "axe", "shovel", "hoe"), a[2]);
                 default -> List.of();
             };
+        }
+        if (a.length == 4 && sub.equals("tool")) {
+            return filter(List.of("wood", "stone", "iron", "gold", "diamond", "netherite"), a[3]);
         }
         return List.of();
     }

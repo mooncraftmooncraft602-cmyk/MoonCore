@@ -83,6 +83,8 @@ public final class CustomItemDef implements CustomItemView {
     private ItemType type = ItemType.WEAPON;
     private Rarity rarity = Rarity.COMMON;
     private Material material = Material.IRON_SWORD;
+    private ToolKind toolKind = ToolKind.NONE;
+    private ToolTier toolTier = ToolTier.HAND;
     private int customModelData = 0;             // 0 = aucun (rendu vanilla)
     private String modelKey = null;              // clé de texture (resource pack)
     private boolean glowing = false;
@@ -109,7 +111,28 @@ public final class CustomItemDef implements CustomItemView {
     public void setType(ItemType type) { this.type = type; }
     public void setRarity(Rarity rarity) { this.rarity = rarity; }
     public Material material() { return material; }
-    public void setMaterial(Material material) { this.material = material; }
+    public void setMaterial(Material material) {
+        this.material = material;
+        inferToolFromMaterial(material);
+    }
+    public ToolKind toolKind() { return toolKind; }
+    public ToolTier toolTier() { return toolTier; }
+    public void setToolKind(ToolKind kind) { setTool(kind, toolTier == ToolTier.HAND ? ToolTier.IRON : toolTier); }
+    public void setToolTier(ToolTier tier) { setTool(toolKind, tier); }
+    public void setTool(ToolKind kind, ToolTier tier) {
+        this.toolKind = kind == null ? ToolKind.NONE : kind;
+        this.toolTier = tier == null ? ToolTier.HAND : tier;
+        if (this.toolKind == ToolKind.NONE) {
+            this.toolTier = ToolTier.HAND;
+            return;
+        }
+        if (this.toolTier == ToolTier.HAND) this.toolTier = ToolTier.IRON;
+        Material toolMaterial = this.toolTier.materialFor(this.toolKind);
+        if (toolMaterial != null) this.material = toolMaterial;
+        this.type = this.toolKind == ToolKind.SWORD
+                ? com.mooncore.api.customitem.ItemType.WEAPON
+                : com.mooncore.api.customitem.ItemType.TOOL;
+    }
     public int customModelData() { return customModelData; }
     public void setCustomModelData(int cmd) { this.customModelData = cmd; }
     public String modelKey() { return modelKey; }
@@ -140,6 +163,18 @@ public final class CustomItemDef implements CustomItemView {
         return abilities.removeIf(a -> a.id().equals(norm));
     }
 
+    private void inferToolFromMaterial(Material material) {
+        ToolKind kind = ToolKind.fromMaterial(material);
+        if (kind == ToolKind.NONE) {
+            this.toolKind = ToolKind.NONE;
+            this.toolTier = ToolTier.HAND;
+            return;
+        }
+        this.toolKind = kind;
+        this.toolTier = ToolTier.fromMaterial(material);
+        this.type = kind == ToolKind.SWORD ? ItemType.WEAPON : ItemType.TOOL;
+    }
+
     /** Copie profonde sous un nouvel id (pour /moon item clone). */
     public CustomItemDef cloneAs(String newId) {
         CustomItemDef c = new CustomItemDef(newId);
@@ -147,6 +182,8 @@ public final class CustomItemDef implements CustomItemView {
         c.type = this.type;
         c.rarity = this.rarity;
         c.material = this.material;
+        c.toolKind = this.toolKind;
+        c.toolTier = this.toolTier;
         c.customModelData = this.customModelData;
         c.modelKey = this.modelKey;
         c.glowing = this.glowing;
@@ -173,6 +210,8 @@ public final class CustomItemDef implements CustomItemView {
         s.set("type", type.id());
         s.set("rarity", rarity.id());
         s.set("material", material.name());
+        s.set("tool-kind", toolKind.id());
+        s.set("tool-tier", toolTier.id());
         s.set("custom-model-data", customModelData);
         s.set("model-key", modelKey);
         s.set("glowing", glowing);
@@ -226,7 +265,11 @@ public final class CustomItemDef implements CustomItemView {
         Rarity r = Rarity.fromId(s.getString("rarity", "common"));
         if (r != null) d.rarity = r;
         Material mat = matchMaterial(s.getString("material", "IRON_SWORD"));
-        if (mat != null) d.material = mat;
+        if (mat != null) d.setMaterial(mat);
+        ToolKind savedKind = ToolKind.fromId(s.getString("tool-kind", d.toolKind.id()));
+        ToolTier savedTier = ToolTier.fromId(s.getString("tool-tier", d.toolTier.id()));
+        if (savedKind != ToolKind.NONE) d.setTool(savedKind, savedTier == ToolTier.HAND ? ToolTier.IRON : savedTier);
+        else if (s.contains("tool-kind")) d.setTool(ToolKind.NONE, ToolTier.HAND);
         d.customModelData = s.getInt("custom-model-data", 0);
         d.modelKey = s.getString("model-key", null);
         d.glowing = s.getBoolean("glowing", false);

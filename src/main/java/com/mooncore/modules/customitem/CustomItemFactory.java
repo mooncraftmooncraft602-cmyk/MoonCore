@@ -165,6 +165,9 @@ public final class CustomItemFactory {
     }
 
     private static String typeLabel(CustomItemDef def) {
+        if (def.toolKind() != com.mooncore.modules.customitem.ToolKind.NONE) {
+            return def.toolKind().label() + " " + def.toolTier().label();
+        }
         return switch (def.type()) {
             case WEAPON -> "Arme";
             case TOOL -> "Outil";

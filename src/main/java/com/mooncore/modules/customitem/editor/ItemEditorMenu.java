@@ -2,6 +2,8 @@ package com.mooncore.modules.customitem.editor;
 
 import com.mooncore.modules.customitem.CustomItemDef;
 import com.mooncore.modules.customitem.CustomItemManagerModule;
+import com.mooncore.modules.customitem.ToolKind;
+import com.mooncore.modules.customitem.ToolTier;
 import com.mooncore.modules.customitem.paint.ItemPaintTarget;
 import com.mooncore.api.customitem.ItemType;
 import com.mooncore.api.customitem.Rarity;
@@ -60,6 +62,11 @@ public final class ItemEditorMenu implements InventoryHolder {
         inv.setItem(25, btn(Material.PAPER, "<yellow>Lore : <white>" + d.lore().size() + " ligne(s)",
                 "<dark_gray>clic = ajouter une ligne <dark_gray>| clic droit = vider"));
 
+        inv.setItem(26, btn(toolIcon(d.toolKind()), "<yellow>Outil reel : <white>" + toolLabel(d),
+                "<gray>clic = famille (hache/pioche/pelle...)",
+                "<gray>clic droit = tier (bois, fer, diamant...)",
+                "<dark_gray>change aussi le materiau vanilla"));
+
         inv.setItem(29, btn(Material.ANVIL, "<gold>Stats", "<gray>" + d.stats().size() + " active(s)", "<dark_gray>clic = éditer"));
         inv.setItem(30, btn(Material.ENCHANTED_BOOK, "<gold>Capacités", "<gray>" + d.abilities().size(), "<dark_gray>clic = éditer"));
         inv.setItem(31, btn(Material.BRUSH, "<light_purple>🎨 Texture", "<dark_gray>dessiner / éditer en jeu"));
@@ -87,6 +94,12 @@ public final class ItemEditorMenu implements InventoryHolder {
                 if (right) { d.lore().clear(); module.put(d); refresh(); }
                 else { p.closeInventory(); chat.request(p, "<yellow>Ligne de lore à ajouter (MiniMessage) :",
                         in -> { d.lore().add(in); module.put(d); reopen(p); }); }
+            }
+            case 26 -> {
+                if (right) d.setToolTier(nextTier(d.toolTier()));
+                else d.setToolKind(nextKind(d.toolKind()));
+                module.put(d);
+                refresh();
             }
             case 29 -> StatEditorMenu.open(module, chat, p, id);
             case 30 -> AbilityEditorMenu.open(module, chat, p, id);
@@ -123,6 +136,33 @@ public final class ItemEditorMenu implements InventoryHolder {
     }
 
     private static String onOff(boolean b) { return b ? "<green>ON" : "<red>OFF"; }
+
+    private static ToolKind nextKind(ToolKind current) {
+        ToolKind[] values = {ToolKind.NONE, ToolKind.PICKAXE, ToolKind.AXE, ToolKind.SHOVEL, ToolKind.HOE, ToolKind.SWORD};
+        for (int i = 0; i < values.length; i++) if (values[i] == current) return values[(i + 1) % values.length];
+        return ToolKind.PICKAXE;
+    }
+
+    private static ToolTier nextTier(ToolTier current) {
+        ToolTier[] values = {ToolTier.WOOD, ToolTier.STONE, ToolTier.IRON, ToolTier.GOLD, ToolTier.DIAMOND, ToolTier.NETHERITE};
+        for (int i = 0; i < values.length; i++) if (values[i] == current) return values[(i + 1) % values.length];
+        return ToolTier.IRON;
+    }
+
+    private static String toolLabel(CustomItemDef d) {
+        return d.toolKind() == ToolKind.NONE ? "aucun" : d.toolKind().label() + " " + d.toolTier().label();
+    }
+
+    private static Material toolIcon(ToolKind kind) {
+        return switch (kind) {
+            case PICKAXE -> Material.IRON_PICKAXE;
+            case AXE -> Material.IRON_AXE;
+            case SHOVEL -> Material.IRON_SHOVEL;
+            case HOE -> Material.IRON_HOE;
+            case SWORD -> Material.IRON_SWORD;
+            case NONE -> Material.STICK;
+        };
+    }
 
     private static ItemStack safeItem(Material m) {
         return new ItemStack(m != null && m.isItem() ? m : Material.PAPER);

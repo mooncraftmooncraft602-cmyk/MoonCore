@@ -7,6 +7,8 @@ import com.google.gson.JsonObject;
 import com.mooncore.api.customitem.ItemType;
 import com.mooncore.api.customitem.Rarity;
 import com.mooncore.modules.customitem.CustomItemDef;
+import com.mooncore.modules.customitem.ToolKind;
+import com.mooncore.modules.customitem.ToolTier;
 import com.mooncore.modules.customitem.ability.AbilityRegistry;
 import org.bukkit.Material;
 
@@ -89,6 +91,19 @@ public final class AiActionValidator {
             warnings.add("Matériau invalide → " + mat.name() + ".");
         }
         def.setMaterial(mat);
+        ToolKind toolKind = root.has("tool_kind")
+                ? ToolKind.fromId(str(root, "tool_kind", ""))
+                : ToolKind.fromMaterial(mat);
+        if (toolKind == ToolKind.NONE) {
+            toolKind = ToolKind.fromText(id + " " + def.displayName() + " " + str(root, "material", ""));
+        }
+        if (toolKind != ToolKind.NONE) {
+            ToolTier tier = root.has("tool_tier")
+                    ? ToolTier.fromId(str(root, "tool_tier", ""))
+                    : ToolTier.fromMaterial(mat);
+            if (tier == ToolTier.HAND) tier = ToolTier.NETHERITE;
+            def.setTool(toolKind, tier);
+        }
 
         def.setGlowing(bool(root, "glowing", false));
         def.setUnbreakable(bool(root, "unbreakable", false));

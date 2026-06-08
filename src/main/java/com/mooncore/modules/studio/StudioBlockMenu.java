@@ -60,7 +60,8 @@ public final class StudioBlockMenu implements StudioMenu {
                     "<gray>clic: éditer",
                     "<gray>clic droit: recevoir",
                     "<gray>shift: peindre texture",
-                    "<dark_gray>état " + def.stateIndex() + (def.generate() ? " · minerai" : "")));
+                    "<dark_gray>" + toolLine(def),
+                    "<dark_gray>durabilite " + def.breakDurability() + (def.generate() ? " - minerai" : "")));
         }
         if (page > 0) inv.setItem(45, StudioItems.btn(Material.ARROW, "<yellow>Page précédente"));
         if (start + StudioItems.CONTENT_SLOTS.length < ids.size()) inv.setItem(53, StudioItems.btn(Material.ARROW, "<yellow>Page suivante"));
@@ -125,6 +126,11 @@ public final class StudioBlockMenu implements StudioMenu {
     private static int indexFor(int slot) {
         for (int i = 0; i < StudioItems.CONTENT_SLOTS.length; i++) if (StudioItems.CONTENT_SLOTS[i] == slot) return i;
         return -1;
+    }
+
+    private static String toolLine(CustomBlockDef def) {
+        if (def.requiredTool() == com.mooncore.modules.customitem.ToolKind.NONE) return "outil: aucun";
+        return "outil: " + def.requiredTool().label() + " " + def.minToolTier().label() + "+";
     }
 
     private CustomBlockManagerModule blocks() {

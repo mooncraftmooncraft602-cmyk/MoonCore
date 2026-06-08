@@ -83,6 +83,8 @@ public final class AiPrompts {
                   "type": un de [%TYPES%],
                   "rarity": un de [%RARITIES%],
                   "material": un Material Bukkit valide en MAJUSCULES (ex: NETHERITE_SWORD),
+                  "tool_kind": optionnel, un de axe|pickaxe|shovel|hoe|sword pour les vrais outils,
+                  "tool_tier": optionnel, un de wood|stone|iron|gold|diamond|netherite,
                   "lore": ["lignes MiniMessage de description/lore"],
                   "stats": { "<stat>": nombre, ... },
                   "abilities": [ { "id": "<capacité>", "level": entier } ],

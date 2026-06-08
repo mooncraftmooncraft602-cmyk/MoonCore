@@ -1,5 +1,7 @@
 package com.mooncore.modules.customblock;
 
+import com.mooncore.modules.customitem.ToolKind;
+import com.mooncore.modules.customitem.ToolTier;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 
@@ -21,6 +23,10 @@ public final class CustomBlockDef {
     private String dropItemId;          // id d'item custom à drop (null = se drop lui-même)
     private int dropXp = 0;
     private boolean requiresPickaxe = true;
+    private ToolKind requiredTool = ToolKind.PICKAXE;
+    private ToolTier minToolTier = ToolTier.WOOD;
+    private int breakDurability = 1;
+    private double blastResistance = 6.0;
 
     // Worldgen (génération de minerai dans les nouveaux chunks).
     private boolean generate = false;
@@ -56,7 +62,27 @@ public final class CustomBlockDef {
     public int dropXp() { return dropXp; }
     public void setDropXp(int x) { this.dropXp = x; }
     public boolean requiresPickaxe() { return requiresPickaxe; }
-    public void setRequiresPickaxe(boolean b) { this.requiresPickaxe = b; }
+    public void setRequiresPickaxe(boolean b) {
+        this.requiresPickaxe = b;
+        this.requiredTool = b ? ToolKind.PICKAXE : ToolKind.NONE;
+        if (b && minToolTier == ToolTier.HAND) minToolTier = ToolTier.WOOD;
+    }
+    public ToolKind requiredTool() { return requiredTool; }
+    public void setRequiredTool(ToolKind tool) {
+        this.requiredTool = tool == null ? ToolKind.NONE : tool;
+        this.requiresPickaxe = this.requiredTool == ToolKind.PICKAXE;
+        if (this.requiredTool == ToolKind.NONE) this.minToolTier = ToolTier.HAND;
+        else if (this.minToolTier == ToolTier.HAND) this.minToolTier = ToolTier.WOOD;
+    }
+    public ToolTier minToolTier() { return minToolTier; }
+    public void setMinToolTier(ToolTier tier) {
+        this.minToolTier = tier == null ? ToolTier.HAND : tier;
+        if (requiredTool != ToolKind.NONE && this.minToolTier == ToolTier.HAND) this.minToolTier = ToolTier.WOOD;
+    }
+    public int breakDurability() { return breakDurability; }
+    public void setBreakDurability(int value) { this.breakDurability = Math.max(1, Math.min(100, value)); }
+    public double blastResistance() { return blastResistance; }
+    public void setBlastResistance(double value) { this.blastResistance = Math.max(0, Math.min(1200, value)); }
 
     public boolean generate() { return generate; }
     public void setGenerate(boolean b) { this.generate = b; }
@@ -80,6 +106,10 @@ public final class CustomBlockDef {
         s.set("drop-item", dropItemId);
         s.set("drop-xp", dropXp);
         s.set("requires-pickaxe", requiresPickaxe);
+        s.set("required-tool", requiredTool.id());
+        s.set("min-tool-tier", minToolTier.id());
+        s.set("break-durability", breakDurability);
+        s.set("blast-resistance", blastResistance);
         ConfigurationSection g = s.createSection("worldgen");
         g.set("generate", generate);
         g.set("replace", replace.name());
@@ -100,6 +130,11 @@ public final class CustomBlockDef {
         d.dropItemId = s.getString("drop-item", null);
         d.dropXp = s.getInt("drop-xp", 0);
         d.requiresPickaxe = s.getBoolean("requires-pickaxe", true);
+        d.requiredTool = ToolKind.fromId(s.getString("required-tool", d.requiresPickaxe ? "pickaxe" : "none"));
+        d.minToolTier = ToolTier.fromId(s.getString("min-tool-tier", d.requiredTool == ToolKind.NONE ? "hand" : "wood"));
+        d.breakDurability = Math.max(1, s.getInt("break-durability", 1));
+        d.blastResistance = Math.max(0, s.getDouble("blast-resistance", 6.0));
+        d.requiresPickaxe = d.requiredTool == ToolKind.PICKAXE;
         ConfigurationSection g = s.getConfigurationSection("worldgen");
         if (g != null) {
             d.generate = g.getBoolean("generate", false);

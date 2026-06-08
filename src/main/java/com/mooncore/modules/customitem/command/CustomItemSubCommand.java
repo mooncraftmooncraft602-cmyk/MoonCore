@@ -8,6 +8,8 @@ import com.mooncore.command.SubCommand;
 import com.mooncore.modules.customitem.CustomItemDef;
 import com.mooncore.modules.customitem.CustomItemManagerModule;
 import com.mooncore.modules.customitem.ResourcePackBuilder;
+import com.mooncore.modules.customitem.ToolKind;
+import com.mooncore.modules.customitem.ToolTier;
 import com.mooncore.modules.customitem.ability.Ability;
 import com.mooncore.util.Text;
 import org.bukkit.Bukkit;
@@ -180,6 +182,8 @@ public final class CustomItemSubCommand implements SubCommand {
         }
         if (module.rawDef(id) != null) { msg(s, "<red>Cet id existe déjà."); return; }
         CustomItemDef d = new CustomItemDef(id);
+        ToolKind hint = ToolKind.fromText(id);
+        if (hint != ToolKind.NONE) d.setTool(hint, ToolTier.IRON);
         if (a.length >= 3) {
             Material m = Material.matchMaterial(a[2].toUpperCase(Locale.ROOT));
             if (m == null) { msg(s, "<red>Matériau inconnu : " + a[2]); return; }
@@ -244,7 +248,7 @@ public final class CustomItemSubCommand implements SubCommand {
             // Sans champ → ouvre l'assistant GUI (joueur) ; sinon rappelle la syntaxe CLI.
             Player p = player(s);
             if (p != null) { com.mooncore.modules.customitem.editor.ItemEditorMenu.open(module, module.chatInput(), p, d.id()); return; }
-            msg(s, "<red>/moon item edit <id> <material|type|glow|unbreakable|lore> ...");
+            msg(s, "<red>/moon item edit <id> <material|type|tool|glow|unbreakable|lore> ...");
             return;
         }
         String field = a[2].toLowerCase(Locale.ROOT);
@@ -258,6 +262,13 @@ public final class CustomItemSubCommand implements SubCommand {
                 ItemType t = ItemType.fromId(arg(a, 3, ""));
                 if (t == null) { msg(s, "<red>Types : " + types()); return; }
                 d.setType(t); msg(s, "<green>Type = " + t.id());
+            }
+            case "tool" -> {
+                ToolKind kind = ToolKind.fromId(arg(a, 3, ""));
+                ToolTier tier = ToolTier.fromId(arg(a, 4, "iron"));
+                d.setTool(kind, kind == ToolKind.NONE ? ToolTier.HAND : tier);
+                msg(s, "<green>Outil = " + (kind == ToolKind.NONE ? "aucun" : kind.label() + " " + d.toolTier().label())
+                        + " <gray>(" + d.material().name() + ")");
             }
             case "glow" -> { d.setGlowing(Boolean.parseBoolean(arg(a, 3, "true"))); msg(s, "<green>Glow = " + d.glowing()); }
             case "unbreakable" -> { d.setUnbreakable(Boolean.parseBoolean(arg(a, 3, "true"))); msg(s, "<green>Incassable = " + d.unbreakable()); }
@@ -551,7 +562,7 @@ public final class CustomItemSubCommand implements SubCommand {
                 case "model" -> filter(List.of("set", "preview"), a[2]);
                 case "recipe" -> filter(List.of("set", "clear"), a[2]);
                 case "create" -> filter(materials(), a[2]);
-                case "edit" -> filter(List.of("material", "type", "glow", "unbreakable", "lore"), a[2]);
+                case "edit" -> filter(List.of("material", "type", "tool", "glow", "unbreakable", "lore"), a[2]);
                 default -> List.of();
             };
         }

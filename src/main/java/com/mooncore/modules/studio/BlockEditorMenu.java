@@ -5,6 +5,8 @@ import com.mooncore.modules.customblock.CustomBlockDef;
 import com.mooncore.modules.customblock.CustomBlockManagerModule;
 import com.mooncore.modules.customitem.CustomItemDefStore;
 import com.mooncore.modules.customitem.CustomItemManagerModule;
+import com.mooncore.modules.customitem.ToolKind;
+import com.mooncore.modules.customitem.ToolTier;
 import com.mooncore.modules.customitem.paint.BlockFacePaintTarget;
 import com.mooncore.modules.customitem.paint.BlockPaintTarget;
 import com.mooncore.util.ChatInput;
@@ -63,8 +65,10 @@ public final class BlockEditorMenu implements StudioMenu {
         inv.setItem(14, StudioItems.btn(Material.MAP, "<green>Rebuild pack"));
         inv.setItem(16, StudioItems.btn(Material.OAK_DOOR, "<yellow>Retour"));
 
-        inv.setItem(19, StudioItems.btn(def.requiresPickaxe() ? Material.IRON_PICKAXE : Material.WOODEN_PICKAXE,
-                "<yellow>Pioche requise : " + onOff(def.requiresPickaxe())));
+        inv.setItem(19, StudioItems.btn(toolIcon(def.requiredTool()),
+                "<yellow>Outil requis : <white>" + toolRequirement(def),
+                "<gray>clic = outil suivant",
+                "<gray>clic droit = tier minimum"));
         inv.setItem(20, StudioItems.btn(Material.EXPERIENCE_BOTTLE, "<yellow>XP drop : <white>" + def.dropXp(),
                 "<gray>clic = +1 · clic droit = -1",
                 "<gray>shift = +10 / -10"));
@@ -87,6 +91,12 @@ public final class BlockEditorMenu implements StudioMenu {
         inv.setItem(31, StudioItems.btn(Material.BLUE_DYE, "<light_purple>Texture bas"));
         inv.setItem(32, StudioItems.btn(Material.TNT, "<red>Réinitialiser faces", "<gray>revient à texture unique"));
         inv.setItem(33, StudioItems.btn(Material.ENCHANTED_BOOK, "<light_purple>Retexture IA", "<gray>demande une texture par description"));
+        inv.setItem(34, StudioItems.btn(Material.OBSIDIAN, "<yellow>Durabilite minage : <white>" + def.breakDurability(),
+                "<gray>clic = +1, clic droit = -1",
+                "<gray>shift = x5"));
+        inv.setItem(35, StudioItems.btn(Material.TNT, "<red>Resistance explosion : <white>" + def.blastResistance(),
+                "<gray>0 = fragile, 4+ = resiste aux explosions",
+                "<gray>clic = +1, clic droit = -1"));
     }
 
     @Override
@@ -104,7 +114,12 @@ public final class BlockEditorMenu implements StudioMenu {
             case 13 -> placeTest(p, module, def);
             case 14 -> StudioItems.rebuildAndResend(plugin, p);
             case 16 -> StudioBlockMenu.open(plugin, chat, p, 0);
-            case 19 -> { def.setRequiresPickaxe(!def.requiresPickaxe()); module.put(def); build(); }
+            case 19 -> {
+                if (rightClick) def.setMinToolTier(nextTier(def.minToolTier()));
+                else def.setRequiredTool(nextTool(def.requiredTool()));
+                module.put(def);
+                build();
+            }
             case 20 -> { def.setDropXp(Math.max(0, def.dropXp() + (rightClick ? -1 : 1) * (shiftClick ? 10 : 1))); module.put(def); build(); }
             case 21 -> {
                 if (rightClick) { def.setDropItemId(null); module.put(def); build(); }
@@ -123,6 +138,8 @@ public final class BlockEditorMenu implements StudioMenu {
                 p.closeInventory();
                 chat.request(p, "<yellow>Description du bloc/minerai IA :", in -> p.performCommand("moon ai createblock " + id + " " + in + " texture"));
             }
+            case 34 -> { def.setBreakDurability(def.breakDurability() + (rightClick ? -1 : 1) * (shiftClick ? 5 : 1)); module.put(def); build(); }
+            case 35 -> { def.setBlastResistance(def.blastResistance() + (rightClick ? -1 : 1) * (shiftClick ? 5 : 1)); module.put(def); build(); }
             default -> { }
         }
     }
@@ -194,6 +211,34 @@ public final class BlockEditorMenu implements StudioMenu {
     }
 
     private static String onOff(boolean value) { return value ? "<green>ON" : "<red>OFF"; }
+
+    private static ToolKind nextTool(ToolKind current) {
+        ToolKind[] values = {ToolKind.NONE, ToolKind.PICKAXE, ToolKind.AXE, ToolKind.SHOVEL, ToolKind.HOE};
+        for (int i = 0; i < values.length; i++) if (values[i] == current) return values[(i + 1) % values.length];
+        return ToolKind.PICKAXE;
+    }
+
+    private static ToolTier nextTier(ToolTier current) {
+        ToolTier[] values = {ToolTier.WOOD, ToolTier.STONE, ToolTier.IRON, ToolTier.GOLD, ToolTier.DIAMOND, ToolTier.NETHERITE};
+        for (int i = 0; i < values.length; i++) if (values[i] == current) return values[(i + 1) % values.length];
+        return ToolTier.WOOD;
+    }
+
+    private static String toolRequirement(CustomBlockDef def) {
+        if (def.requiredTool() == ToolKind.NONE) return "aucun";
+        return def.requiredTool().label() + " " + def.minToolTier().label() + "+";
+    }
+
+    private static Material toolIcon(ToolKind kind) {
+        return switch (kind) {
+            case PICKAXE -> Material.IRON_PICKAXE;
+            case AXE -> Material.IRON_AXE;
+            case SHOVEL -> Material.IRON_SHOVEL;
+            case HOE -> Material.IRON_HOE;
+            case SWORD -> Material.IRON_SWORD;
+            case NONE -> Material.STICK;
+        };
+    }
 
     private CustomBlockManagerModule blocks() { return plugin.moduleManager().get(CustomBlockManagerModule.class); }
     private CustomBlockDef def() { CustomBlockManagerModule m = blocks(); return m == null ? null : m.rawDef(id); }
