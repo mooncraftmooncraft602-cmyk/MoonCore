@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "mooncore-companion",
+  "version": "${version}",
+  "name": "MoonCore Companion",
+  "description": "Mod client OPTIONNEL pour les serveurs MoonCore : débloque les outils de création avancés (studio 2D/3D, modèles, animations) côté Java. Inutile pour jouer — le serveur fonctionne sans, pour les joueurs Java vanilla et Bedrock.",
+  "authors": ["MoonCore"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.mooncore.companion.MoonCoreCompanionClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

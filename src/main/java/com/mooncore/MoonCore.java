@@ -110,6 +110,7 @@ public final class MoonCore extends JavaPlugin {
         moduleManager.register(new com.mooncore.modules.placeholder.PlaceholderModule());
         moduleManager.register(new com.mooncore.modules.admin.AdminToolsModule());
         moduleManager.register(new com.mooncore.modules.update.UpdateModule());
+        moduleManager.register(new com.mooncore.modules.companion.CompanionModule());
     }
 
     private void setupCommands() {
