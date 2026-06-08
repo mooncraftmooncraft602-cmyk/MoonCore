@@ -94,6 +94,13 @@ public final class RecipeEditorMenu implements InventoryHolder {
         int slot = e.getRawSlot();
 
         if (!top) {
+            // Anti-duplication : un double-clic / collect-to-cursor aspire les "ghosts" (items réels)
+            // de la grille du haut depuis l'inventaire du bas → on bloque ces actions.
+            if (e.getClick() == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK
+                    || e.getAction() == org.bukkit.event.inventory.InventoryAction.COLLECT_TO_CURSOR) {
+                e.setCancelled(true);
+                return;
+            }
             if (e.isShiftClick() && usable(e.getCurrentItem())) {
                 e.setCancelled(true);
                 placeFirstEmpty(p, e.getCurrentItem());

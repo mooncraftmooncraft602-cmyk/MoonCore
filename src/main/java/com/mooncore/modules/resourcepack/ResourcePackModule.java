@@ -169,7 +169,11 @@ public final class ResourcePackModule extends AbstractModule implements Resource
     }
 
     private static void copyPngs(File src, File dst) throws java.io.IOException {
-        File[] files = src.listFiles((d, n) -> n.toLowerCase(java.util.Locale.ROOT).endsWith(".png"));
+        // .png ET .png.mcmeta (sinon les animations seraient perdues dans les sauvegardes).
+        File[] files = src.listFiles((d, n) -> {
+            String low = n.toLowerCase(java.util.Locale.ROOT);
+            return low.endsWith(".png") || low.endsWith(".png.mcmeta");
+        });
         if (files == null || files.length == 0) return;
         dst.mkdirs();
         for (File f : files) {

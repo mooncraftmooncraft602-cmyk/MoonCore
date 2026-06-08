@@ -91,11 +91,15 @@ public final class PaintSession {
     /** Échantillonne une image (de n'importe quelle taille) vers la grille de la toile. */
     private void loadFromImage(java.awt.image.BufferedImage img) {
         int n = canvas.size();
+        int w = img.getWidth(), h = img.getHeight();
+        // Bande d'animation (hauteur = multiple entier de la largeur) → on n'édite que la 1re frame
+        // (sinon toutes les frames seraient écrasées dans la toile carrée et l'animation détruite).
+        int srcH = (w > 0 && h > w && h % w == 0) ? w : h;
         int[][] grid = new int[n][n];
         for (int y = 0; y < n; y++)
             for (int x = 0; x < n; x++) {
-                int sx = x * img.getWidth() / n, sy = y * img.getHeight() / n;
-                grid[y][x] = img.getRGB(Math.min(sx, img.getWidth() - 1), Math.min(sy, img.getHeight() - 1));
+                int sx = x * w / n, sy = y * srcH / n;
+                grid[y][x] = img.getRGB(Math.min(sx, w - 1), Math.min(sy, srcH - 1));
             }
         canvas.load(grid);
     }

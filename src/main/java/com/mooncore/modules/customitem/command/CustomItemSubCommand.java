@@ -206,6 +206,8 @@ public final class CustomItemSubCommand implements SubCommand {
         }
         if (module.rawDef(newId) != null) { msg(s, "<red>Cet id existe déjà."); return; }
         module.put(src.cloneAs(newId));
+        // unregister + register (un registerAll seul re-ajoute les clés déjà enregistrées → warnings « Duplicate recipe »).
+        module.recipeManager().unregisterAll();
         module.recipeManager().registerAll();
         msg(s, "<green>Cloné <white>" + a[1] + "<green> → <white>" + newId);
     }
