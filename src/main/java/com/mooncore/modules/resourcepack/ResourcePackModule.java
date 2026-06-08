@@ -125,6 +125,8 @@ public final class ResourcePackModule extends AbstractModule implements Resource
                     cb != null ? cb.rawDefs() : Map.of();
             File blockTex = cb != null ? cb.store().texturesFolder() : null;
 
+            backupTextures(texturesSrc, blockTex); // filet de sécurité avant ré-assemblage
+
             PackAssembler.Built built = new PackAssembler(log())
                     .assemble(defs, buildDir, texturesSrc, packSources, packZip, blockDefs, blockTex);
             this.sha1 = built.sha1();
@@ -133,6 +135,54 @@ public final class ResourcePackModule extends AbstractModule implements Resource
         } catch (Exception e) {
             log().error("[ResourcePack] Échec d'assemblage du pack", e);
         }
+    }
+
+    private static final int MAX_BACKUPS = 12;
+
+    /** Snapshot des textures sources (items + blocs) avant chaque rebuild → resourcepack-backups/. */
+    private void backupTextures(File itemsSrc, File blockSrc) {
+        try {
+            int items = pngCount(itemsSrc), blocks = pngCount(blockSrc);
+            if (items + blocks == 0) return; // rien à sauvegarder
+            File root = new File(plugin().getDataFolder(), "resourcepack-backups");
+            root.mkdirs();
+            File snap = new File(root, String.valueOf(System.currentTimeMillis()));
+            if (itemsSrc != null && itemsSrc.isDirectory()) copyPngs(itemsSrc, new File(snap, "items"));
+            if (blockSrc != null && blockSrc.isDirectory()) copyPngs(blockSrc, new File(snap, "blocks"));
+            rotateBackups(root);
+        } catch (Exception e) {
+            log().warn("[ResourcePack] Backup des textures échoué : " + e.getMessage());
+        }
+    }
+
+    private static int pngCount(File dir) {
+        if (dir == null || !dir.isDirectory()) return 0;
+        File[] f = dir.listFiles((d, n) -> n.toLowerCase(java.util.Locale.ROOT).endsWith(".png"));
+        return f == null ? 0 : f.length;
+    }
+
+    private static void copyPngs(File src, File dst) throws java.io.IOException {
+        File[] files = src.listFiles((d, n) -> n.toLowerCase(java.util.Locale.ROOT).endsWith(".png"));
+        if (files == null || files.length == 0) return;
+        dst.mkdirs();
+        for (File f : files) {
+            java.nio.file.Files.copy(f.toPath(), new File(dst, f.getName()).toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    /** Ne garde que les {@value #MAX_BACKUPS} backups les plus récents. */
+    private void rotateBackups(File root) {
+        File[] snaps = root.listFiles(File::isDirectory);
+        if (snaps == null || snaps.length <= MAX_BACKUPS) return;
+        java.util.Arrays.sort(snaps, java.util.Comparator.comparing(File::getName)); // timestamps croissants
+        for (int i = 0; i < snaps.length - MAX_BACKUPS; i++) deleteRecursive(snaps[i]);
+    }
+
+    private static void deleteRecursive(File f) {
+        if (f == null || !f.exists()) return;
+        if (f.isDirectory()) { File[] c = f.listFiles(); if (c != null) for (File x : c) deleteRecursive(x); }
+        f.delete();
     }
 
     @Override

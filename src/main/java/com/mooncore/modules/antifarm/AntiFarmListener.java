@@ -73,11 +73,17 @@ public final class AntiFarmListener implements Listener {
             return;
         }
 
+        // Différé d'un tick : un handler postérieur (HIGHEST/MONITOR d'un plugin de protection) peut
+        // encore annuler la pose. On ne compte/persiste le spawner que s'il est réellement posé,
+        // sinon un slot « fantôme » bloquerait de futures poses légitimes et serait persisté au reload.
         SpawnerRegistry.Entry entry = new SpawnerRegistry.Entry(
                 world, l.getBlockX(), l.getBlockY(), l.getBlockZ(), p.getUniqueId(), team);
-        if (module.registry().add(entry)) {
-            module.store().save(entry);
-        }
+        plugin.schedulers().syncLater(() -> {
+            if (b.getType() != Material.SPAWNER) return; // pose annulée entre-temps
+            if (module.registry().add(entry)) {
+                module.store().save(entry);
+            }
+        }, 1L);
     }
 
     @EventHandler(ignoreCancelled = true)

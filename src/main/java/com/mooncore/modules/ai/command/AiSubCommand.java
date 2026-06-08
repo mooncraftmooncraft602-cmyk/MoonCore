@@ -73,8 +73,10 @@ public final class AiSubCommand implements SubCommand {
      * PLUSIEURS éléments d'un coup, avec génération de textures et un seul rebuild du pack.
      */
     @SuppressWarnings("unchecked")
-    private void createUnified(CommandSender s, String prompt) {
-        if (prompt == null || prompt.isBlank()) { help(s); return; }
+    private void createUnified(CommandSender s, String rawPrompt) {
+        if (rawPrompt == null || rawPrompt.isBlank()) { help(s); return; }
+        final boolean texWanted = wantsTexture(rawPrompt.split("\\s+"));
+        final String prompt = joinNoFlags(rawPrompt.split("\\s+"), 0); // retire le mot-clé "texture"
         var ci = module.customItemModule();
         var bm = module.bossModule();
         var cb = module.blockModule();
@@ -99,7 +101,7 @@ public final class AiSubCommand implements SubCommand {
                             cb.put(def);
                             count[1]++;
                             msg(s, "<green>▸ bloc <white>" + def.id());
-                            tex.add(genTexture(blockTexturePrompt(def.displayName()), false,
+                            if (texWanted) tex.add(genTexture(blockTexturePrompt(def.displayName()), false,
                                     new java.io.File(cb.store().texturesFolder(), def.id() + ".png"),
                                     () -> { var d = cb.rawDef(def.id()); if (d != null) { d.setModelKey(def.id()); cb.put(d); } }));
                         }
@@ -117,7 +119,7 @@ public final class AiSubCommand implements SubCommand {
                                 ci.put(def);
                                 count[0]++;
                                 msg(s, "<green>▸ objet <white>" + def.id());
-                                tex.add(genTexture(itemTexturePrompt(def.displayName(), def.rarity().id(), def.type().id()),
+                                if (texWanted) tex.add(genTexture(itemTexturePrompt(def.displayName(), def.rarity().id(), def.type().id()),
                                         true, new java.io.File(ci.texturesFolder(), def.id() + ".png"),
                                         () -> { def.setModelKey(def.id()); if (def.customModelData() <= 0) def.setCustomModelData(ci.nextCustomModelData()); ci.put(def); }));
                             }
@@ -129,15 +131,19 @@ public final class AiSubCommand implements SubCommand {
             }
             int total = count[0] + count[1] + count[2];
             if (total == 0) { fail(s, "create", prompt, "aucun élément valide généré"); return; }
-            msg(s, "<gray>🎨 Génération des textures (" + tex.size() + ")…");
-            java.util.concurrent.CompletableFuture
-                    .allOf(tex.toArray(new java.util.concurrent.CompletableFuture[0]))
-                    .whenComplete((v, e) -> sync(() -> {
-                        module.mc().services().get(com.mooncore.api.resourcepack.ResourcePackService.class)
-                                .ifPresent(rp -> { rp.rebuild(); rp.resendAll(); });
-                        msg(s, "<green>✔ Créé : <white>" + count[0] + " objet(s), " + count[1]
-                                + " bloc(s), " + count[2] + " boss<green>. Pack mis à jour.");
-                    }));
+            String summary = "<green>✔ Créé : <white>" + count[0] + " objet(s), " + count[1] + " bloc(s), " + count[2] + " boss";
+            if (tex.isEmpty()) { // pas de texture demandée → rien à reconstruire
+                msg(s, summary + "<green>. <dark_gray>(ajoute « texture » pour générer les textures)");
+            } else {
+                msg(s, "<gray>🎨 Génération des textures (" + tex.size() + ")…");
+                java.util.concurrent.CompletableFuture
+                        .allOf(tex.toArray(new java.util.concurrent.CompletableFuture[0]))
+                        .whenComplete((v, e) -> sync(() -> {
+                            module.mc().services().get(com.mooncore.api.resourcepack.ResourcePackService.class)
+                                    .ifPresent(rp -> { rp.rebuild(); rp.resendAll(); });
+                            msg(s, summary + "<green>. Pack mis à jour.");
+                        }));
+            }
             ok(s, "create", prompt, total + " éléments");
         });
     }
@@ -435,11 +441,12 @@ public final class AiSubCommand implements SubCommand {
     // ---------------- item-producing commands ----------------
 
     private void createItem(CommandSender s, String[] a) {
-        if (a.length < 2) { msg(s, "<red>/moon ai createitem <description...>"); return; }
-        String prompt = join(a, 1);
+        if (a.length < 2) { msg(s, "<red>/moon ai createitem <description...> [texture]"); return; }
+        boolean tex = wantsTexture(a);
+        String prompt = joinNoFlags(a, 1);
         ask(s, "createitem", prompt, module.prompts().itemSchemaSystem(), text -> {
             AiActionValidator.Result r = module.validator().validateItem(text, null);
-            applyNewDef(s, "createitem", prompt, r, null);
+            applyNewDef(s, "createitem", prompt, r, null, tex);
         });
     }
 
@@ -449,33 +456,36 @@ public final class AiSubCommand implements SubCommand {
         if (ci == null) { msg(s, "<red>CustomItemManager requis."); return; }
         CustomItemDef cur = ci.rawDef(a[1]);
         if (cur == null) { msg(s, "<red>Objet inconnu : " + a[1]); return; }
-        String prompt = "Objet actuel : " + summary(cur) + "\nModification demandée : " + join(a, 2)
+        boolean tex = wantsTexture(a);
+        String prompt = "Objet actuel : " + summary(cur) + "\nModification demandée : " + joinNoFlags(a, 2)
                 + "\nRenvoie l'objet COMPLET mis à jour (même id).";
         ask(s, "modifyitem", prompt, module.prompts().itemSchemaSystem(), text -> {
             AiActionValidator.Result r = module.validator().validateItem(text, cur.id());
-            applyNewDef(s, "modifyitem", prompt, r, null);
+            applyNewDef(s, "modifyitem", prompt, r, null, tex);
         });
     }
 
     private void createBossDrop(CommandSender s, String[] a) {
         if (a.length < 3) { msg(s, "<red>/moon ai createbossdrop <bossId> <description...>"); return; }
         String bossId = a[1].toLowerCase(Locale.ROOT);
-        String prompt = join(a, 2);
+        boolean tex = wantsTexture(a);
+        String prompt = joinNoFlags(a, 2);
         ask(s, "createbossdrop", prompt, module.prompts().itemSchemaSystem(), text -> {
             AiActionValidator.Result r = module.validator().validateItem(text, null);
             applyNewDef(s, "createbossdrop", prompt, r,
-                    def -> def.drops().add(new CustomItemDef.DropRule("boss:" + bossId, 0.25, 1, 1)));
+                    def -> def.drops().add(new CustomItemDef.DropRule("boss:" + bossId, 0.25, 1, 1)), tex);
         });
     }
 
     private void createReward(CommandSender s, String[] a) {
         if (a.length < 3) { msg(s, "<red>/moon ai createreward <eventId> <description...>"); return; }
         String eventId = a[1].toLowerCase(Locale.ROOT);
-        String prompt = join(a, 2);
+        boolean tex = wantsTexture(a);
+        String prompt = joinNoFlags(a, 2);
         ask(s, "createreward", prompt, module.prompts().itemSchemaSystem(), text -> {
             AiActionValidator.Result r = module.validator().validateItem(text, null);
             applyNewDef(s, "createreward", prompt, r,
-                    def -> def.drops().add(new CustomItemDef.DropRule("event:" + eventId, 1.0, 1, 1)));
+                    def -> def.drops().add(new CustomItemDef.DropRule("event:" + eventId, 1.0, 1, 1)), tex);
         });
     }
 
@@ -576,8 +586,34 @@ public final class AiSubCommand implements SubCommand {
     }
 
     /** Applique une définition validée : persiste, donne un aperçu, audite. */
+    // Mots-clés qui demandent EXPLICITEMENT la génération de texture dans une commande.
+    private static final java.util.Set<String> TEX_FLAGS =
+            java.util.Set.of("texture", "+texture", "--texture", "-t", "avec-texture");
+
+    /** True si la commande contient un mot-clé de texture (génération explicite). */
+    private static boolean wantsTexture(String[] a) {
+        for (String x : a) if (TEX_FLAGS.contains(x.toLowerCase(Locale.ROOT))) return true;
+        return false;
+    }
+
+    /** Joint les args à partir de {@code from} en retirant les mots-clés de texture. */
+    private static String joinNoFlags(String[] a, int from) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = Math.min(from, a.length); i < a.length; i++) {
+            if (TEX_FLAGS.contains(a[i].toLowerCase(Locale.ROOT))) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(a[i]);
+        }
+        return sb.toString();
+    }
+
     private void applyNewDef(CommandSender s, String command, String prompt,
                              AiActionValidator.Result r, Consumer<CustomItemDef> mutator) {
+        applyNewDef(s, command, prompt, r, mutator, false);
+    }
+
+    private void applyNewDef(CommandSender s, String command, String prompt,
+                             AiActionValidator.Result r, Consumer<CustomItemDef> mutator, boolean genTexture) {
         if (!r.ok()) { fail(s, command, prompt, r.error()); return; }
         CustomItemManagerModule ci = module.customItemModule();
         if (ci == null) { fail(s, command, prompt, "CustomItemManager indisponible"); return; }
@@ -595,7 +631,9 @@ public final class AiSubCommand implements SubCommand {
         }
         ok(s, command, prompt, "item " + def.id() + (r.warnings().isEmpty() ? "" : " (" + r.warnings().size() + " warn)"));
 
-        maybeGenerateTexture(s, def);
+        // Texture UNIQUEMENT si explicitement demandée (mot-clé "texture" dans la commande).
+        if (genTexture) maybeGenerateTexture(s, def);
+        else msg(s, "<dark_gray>(texture inchangée — ajoute <white>texture</white> à la commande pour en générer une)");
     }
 
     /** L'IA refait la texture d'un objet EXISTANT à partir d'une description. */

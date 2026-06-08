@@ -82,7 +82,16 @@ public final class CustomItemSubCommand implements SubCommand {
     private void importVanilla(CommandSender s) {
         java.io.File data = module.mc().getDataFolder();
         java.io.File src = com.mooncore.modules.customitem.VanillaTextureImporter.findSource(data);
+        java.io.File vanillaDir = com.mooncore.modules.customitem.VanillaTextureImporter.vanillaFolder(data);
+        java.io.File[] already = vanillaDir.listFiles((d, n) -> n.toLowerCase(Locale.ROOT).endsWith(".png"));
+        int existing = already == null ? 0 : already.length;
         if (src == null) {
+            if (existing > 0) {
+                msg(s, "<green>✔ " + existing + " textures vanilla déjà disponibles — pas besoin de réimporter.");
+                msg(s, "<gray>Pars d'une vanilla : <white>/moon item create monitem</white> → <white>/moon item paint monitem deepslate_diamond_ore</white>");
+                msg(s, "<gray>…ou dans l'éditeur : livre <white>« Importer une texture »</white>.");
+                return;
+            }
             msg(s, "<red>Aucun fichier source.</red> <gray>Dépose le <white>.jar du client Minecraft</white> "
                     + "(ou un resource pack vanilla .zip) dans <white>plugins/MoonCore/import/</white>, puis relance.");
             return;
@@ -166,6 +175,9 @@ public final class CustomItemSubCommand implements SubCommand {
     private void create(CommandSender s, String[] a) {
         if (a.length < 2) { msg(s, "<red>/moon item create <id> [material]"); return; }
         String id = a[1].toLowerCase(Locale.ROOT);
+        if (!com.mooncore.modules.customitem.CustomItemDefStore.isValidId(id)) {
+            msg(s, "<red>Id invalide : minuscules, chiffres, _ et - uniquement (max 48)."); return;
+        }
         if (module.rawDef(id) != null) { msg(s, "<red>Cet id existe déjà."); return; }
         CustomItemDef d = new CustomItemDef(id);
         if (a.length >= 3) {
@@ -185,6 +197,9 @@ public final class CustomItemSubCommand implements SubCommand {
         CustomItemDef src = module.rawDef(a[1]);
         if (src == null) { msg(s, "<red>Source inconnue."); return; }
         String newId = a[2].toLowerCase(Locale.ROOT);
+        if (!com.mooncore.modules.customitem.CustomItemDefStore.isValidId(newId)) {
+            msg(s, "<red>Id invalide : minuscules, chiffres, _ et - uniquement (max 48)."); return;
+        }
         if (module.rawDef(newId) != null) { msg(s, "<red>Cet id existe déjà."); return; }
         module.put(src.cloneAs(newId));
         module.recipeManager().registerAll();

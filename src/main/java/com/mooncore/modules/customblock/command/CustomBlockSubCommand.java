@@ -134,7 +134,14 @@ public final class CustomBlockSubCommand implements SubCommand {
     private void importVanilla(CommandSender s) {
         java.io.File data = module.mc().getDataFolder();
         java.io.File src = com.mooncore.modules.customitem.VanillaTextureImporter.findSource(data);
+        java.io.File vanillaDir = com.mooncore.modules.customitem.VanillaTextureImporter.vanillaFolder(data);
+        java.io.File[] already = vanillaDir.listFiles((d, n) -> n.toLowerCase(Locale.ROOT).endsWith(".png"));
         if (src == null) {
+            if (already != null && already.length > 0) {
+                msg(s, "<green>✔ " + already.length + " textures vanilla déjà disponibles — pas besoin de réimporter.");
+                msg(s, "<gray>Ex : <white>/moon block create monbloc</white> → <white>/moon block paint monbloc deepslate_diamond_ore</white>");
+                return;
+            }
             msg(s, "<red>Aucun fichier source.</red> <gray>Dépose le <white>.jar du client Minecraft</white> "
                     + "(ou un resource pack vanilla .zip) dans <white>plugins/MoonCore/import/</white>, puis relance.");
             return;

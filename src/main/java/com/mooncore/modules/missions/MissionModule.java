@@ -137,6 +137,8 @@ public final class MissionModule extends AbstractModule implements MissionServic
                     mp.set(r.missionId(), r.count());
                     if (r.claimed()) mp.setClaimed(r.missionId());
                 }
+                long now = System.currentTimeMillis();
+                for (MissionScope s : MissionScope.values()) mp.setPeriodKey(s, MissionPeriod.key(s, now, seasonId));
                 mp.clearDirty();
                 cache.put(uuid, mp);
             } catch (Exception e) {
@@ -160,6 +162,7 @@ public final class MissionModule extends AbstractModule implements MissionServic
     }
 
     private void saveProgress(UUID uuid, MissionProgress mp) {
+        ensureCurrentPeriod(mp); // ne jamais persister la progression d'une période sous la clé d'une autre
         long now = System.currentTimeMillis();
         Set<String> ids = new HashSet<>(mp.counts().keySet());
         ids.addAll(mp.claimedSet());
@@ -178,10 +181,36 @@ public final class MissionModule extends AbstractModule implements MissionServic
         return keys;
     }
 
+    /** Progression en cache, après réinitialisation des missions dont la période a roulé (rollover en ligne). */
+    private MissionProgress current(UUID uuid) {
+        MissionProgress mp = cache.get(uuid);
+        if (mp != null) ensureCurrentPeriod(mp);
+        return mp;
+    }
+
+    /**
+     * Réinitialise en mémoire les missions dont la clé de période a changé depuis le chargement
+     * (un joueur resté connecté au passage de minuit/semaine UTC) : sinon la progression de l'ancienne
+     * période serait reportée et sauvée sous la clé de la nouvelle.
+     */
+    private void ensureCurrentPeriod(MissionProgress mp) {
+        long now = System.currentTimeMillis();
+        for (MissionScope scope : MissionScope.values()) {
+            String cur = MissionPeriod.key(scope, now, seasonId);
+            String loaded = mp.periodKey(scope);
+            if (loaded == null) { mp.setPeriodKey(scope, cur); continue; }
+            if (!loaded.equals(cur)) {
+                for (Mission m : byScope.getOrDefault(scope, List.of())) mp.reset(m.id());
+                mp.setPeriodKey(scope, cur);
+                mp.markDirty();
+            }
+        }
+    }
+
     // ---- Suivi (appelé par le listener) ----
 
     public void track(UUID uuid, ObjectiveType type, int amount) {
-        MissionProgress mp = cache.get(uuid);
+        MissionProgress mp = current(uuid);
         if (mp == null) return;
         List<Mission> missions = byType.get(type);
         if (missions == null) return;
@@ -201,7 +230,7 @@ public final class MissionModule extends AbstractModule implements MissionServic
 
     @Override
     public int progress(UUID player, String missionId) {
-        MissionProgress mp = cache.get(player);
+        MissionProgress mp = current(player);
         return mp != null ? mp.count(missionId) : 0;
     }
 
@@ -213,14 +242,14 @@ public final class MissionModule extends AbstractModule implements MissionServic
 
     @Override
     public boolean isClaimed(UUID player, String missionId) {
-        MissionProgress mp = cache.get(player);
+        MissionProgress mp = current(player);
         return mp != null && mp.isClaimed(missionId);
     }
 
     @Override
     public CompletableFuture<Boolean> claim(Player player, String missionId) {
         Mission m = byId.get(missionId);
-        MissionProgress mp = cache.get(player.getUniqueId());
+        MissionProgress mp = current(player.getUniqueId());
         if (m == null || mp == null) return CompletableFuture.completedFuture(false);
         if (mp.isClaimed(missionId) || mp.count(missionId) < m.target()) {
             return CompletableFuture.completedFuture(false);

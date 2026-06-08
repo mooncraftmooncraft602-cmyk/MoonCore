@@ -17,6 +17,13 @@ import java.util.Map;
  */
 public final class CustomItemDefStore {
 
+    /** Un id sûr : slug minuscule sans séparateur de chemin → empêche le path traversal (.. / \). */
+    private static final java.util.regex.Pattern ID_PATTERN = java.util.regex.Pattern.compile("[a-z0-9_-]{1,48}");
+
+    public static boolean isValidId(String id) {
+        return id != null && ID_PATTERN.matcher(id).matches();
+    }
+
     private final File folder;
     private final MoonLogger log;
 
@@ -48,6 +55,10 @@ public final class CustomItemDefStore {
     }
 
     public void save(CustomItemDef def) {
+        if (!isValidId(def.id())) {
+            log.warn("Id d'objet custom invalide, sauvegarde refusée (path traversal ?) : " + def.id());
+            return;
+        }
         File f = new File(folder, def.id() + ".yml");
         YamlConfiguration yml = new YamlConfiguration();
         def.save(yml);
@@ -59,11 +70,15 @@ public final class CustomItemDefStore {
     }
 
     public boolean delete(String id) {
-        File f = new File(folder, id.toLowerCase(Locale.ROOT) + ".yml");
+        String norm = id == null ? null : id.toLowerCase(Locale.ROOT);
+        if (!isValidId(norm)) return false;
+        File f = new File(folder, norm + ".yml");
         return f.exists() && f.delete();
     }
 
     public boolean exists(String id) {
-        return new File(folder, id.toLowerCase(Locale.ROOT) + ".yml").exists();
+        String norm = id == null ? null : id.toLowerCase(Locale.ROOT);
+        if (!isValidId(norm)) return false;
+        return new File(folder, norm + ".yml").exists();
     }
 }

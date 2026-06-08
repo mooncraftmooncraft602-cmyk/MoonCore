@@ -13,9 +13,10 @@ import org.bukkit.util.Vector;
 public final class PaintRaytracer {
 
     private static final double MAX_DIST = 6.0;
-    // Marge généreuse : viser un peu à côté de la toile peint quand même le pixel de
-    // bord/coin le plus proche (clamp). Rend les contours bien plus faciles à atteindre.
-    private static final double MARGIN = 0.45;
+    // Marge TRÈS généreuse : viser au-delà de la toile peint quand même le pixel de
+    // bord/coin le plus proche (clamp). N'affecte QUE les texels extérieurs (la précision
+    // au centre reste intacte) → rend les coins/bords faciles à atteindre.
+    private static final double MARGIN = 1.0;
 
     private PaintRaytracer() {}
 
