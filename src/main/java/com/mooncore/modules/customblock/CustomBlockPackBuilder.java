@@ -95,6 +95,11 @@ public final class CustomBlockPackBuilder {
             try {
                 Files.copy(png.toPath(), new File(dst, key + ".png").toPath(),
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                // Animation : copie le .png.mcmeta s'il existe (texture en bande de frames).
+                File mcmeta = new File(src, key + ".png.mcmeta");
+                if (mcmeta.isFile()) Files.copy(mcmeta.toPath(),
+                        new File(dst, key + ".png.mcmeta").toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 warnings.add("Copie texture bloc échouée : " + png.getName());
             }

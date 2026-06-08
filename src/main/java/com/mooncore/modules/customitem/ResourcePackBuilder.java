@@ -79,6 +79,11 @@ public final class ResourcePackBuilder {
                         try {
                             Files.copy(png.toPath(), new File(texturesItem, modelKey + ".png").toPath(),
                                     java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            // Animation : copie le .png.mcmeta s'il existe (texture en bande de frames).
+                            File mcmeta = new File(textureSource, modelKey + ".png.mcmeta");
+                            if (mcmeta.isFile()) Files.copy(mcmeta.toPath(),
+                                    new File(texturesItem, modelKey + ".png.mcmeta").toPath(),
+                                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                             copied++;
                         } catch (IOException io) {
                             warnings.add("Copie texture échouée : " + png.getName() + " (" + io.getMessage() + ")");

@@ -47,6 +47,7 @@ public final class PaintAssistantMenu implements InventoryHolder {
         inv.setItem(6, swatch(session.secondaryColor(), "<aqua>Couleur 2 (dégradé) : #"
                 + String.format("%06X", session.secondaryColor() & 0xFFFFFF), "<dark_gray>clic = prendre la couleur actuelle"));
         inv.setItem(8, btn(Material.CHEST, "<gold>Modèles & tampons", "<gray>bases d'objet + formes prêtes"));
+        inv.setItem(7, btn(Material.MAGMA_CREAM, "<gold>🎞 Animer la texture", "<gray>pulsation, arc-en-ciel, scintillement…"));
 
         // Ligne 2 : couleurs (teinte/saturation/inversion/bruit/symétrie/fond).
         inv.setItem(9, btn(Material.QUARTZ, "<light_purple>Inverser les couleurs"));
@@ -95,6 +96,7 @@ public final class PaintAssistantMenu implements InventoryHolder {
             case 6 -> { session.setSecondaryColor(session.color()); rebuild();
                 p.sendActionBar(Text.mm("<aqua>Couleur 2 = #" + String.format("%06X", session.color() & 0xFFFFFF))); }
             case 8 -> PaintTemplatesMenu.open(session);
+            case 7 -> AnimationMenu.open(session);
             case 9 -> { session.opInvert(); feedback(p, "Couleurs inversées"); }
             case 10 -> { session.opHueShift(-30); feedback(p, "Teinte -30°"); }
             case 11 -> { session.opHueShift(30); feedback(p, "Teinte +30°"); }

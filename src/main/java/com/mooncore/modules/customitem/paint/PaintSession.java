@@ -471,9 +471,34 @@ public final class PaintSession {
             java.io.File out = target.textureFile();
             out.getParentFile().mkdirs();
             java.nio.file.Files.write(out.toPath(), png);
+            // Sauvegarde NORMALE → retire une éventuelle animation (.mcmeta) restante.
+            java.io.File mcmeta = new java.io.File(out.getParentFile(), out.getName() + ".mcmeta");
+            if (mcmeta.isFile()) mcmeta.delete();
             target.onSaved(plugin, p);
         } catch (Exception e) {
             if (p != null) p.sendMessage(Text.mm("<red>Échec sauvegarde : " + e.getMessage()));
+        }
+    }
+
+    /** Génère une ANIMATION (bande de frames + .png.mcmeta) depuis la toile actuelle. */
+    public void applyAnimation(String style, int frames, int frametime) {
+        Player p = player();
+        try {
+            int[][] strip = AnimationBuilder.strip(canvas.export(), style, frames);
+            int h = strip.length, w = strip[0].length;
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) img.setRGB(x, y, strip[y][x]);
+            java.io.File out = target.textureFile();
+            out.getParentFile().mkdirs();
+            javax.imageio.ImageIO.write(img, "png", out);
+            java.io.File mcmeta = new java.io.File(out.getParentFile(), out.getName() + ".mcmeta");
+            java.nio.file.Files.writeString(mcmeta.toPath(),
+                    "{\n  \"animation\": {\n    \"frametime\": " + Math.max(1, frametime) + ",\n    \"interpolate\": false\n  }\n}");
+            target.onSaved(plugin, p);
+            if (p != null) p.sendMessage(Text.mm("<green>🎞 Animation « " + AnimationBuilder.label(style) + " » appliquée ("
+                    + Math.max(2, frames) + " images · " + Math.max(1, frametime) + " ticks/img). Pack mis à jour."));
+        } catch (Exception e) {
+            if (p != null) p.sendMessage(Text.mm("<red>Échec animation : " + e.getMessage()));
         }
     }
 
