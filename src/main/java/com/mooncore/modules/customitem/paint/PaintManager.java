@@ -13,9 +13,20 @@ public final class PaintManager {
 
     private final MoonCore plugin;
     private final Map<UUID, PaintSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, Double> sensitivityMemory = new ConcurrentHashMap<>();
 
     public PaintManager(MoonCore plugin) {
         this.plugin = plugin;
+    }
+
+    /** Sensibilité curseur retenue pour ce joueur (sinon {@code dflt}). */
+    public double sensitivity(UUID player, double dflt) {
+        return sensitivityMemory.getOrDefault(player, dflt);
+    }
+
+    /** Mémorise la sensibilité choisie par un joueur (persiste entre ouvertures de l'éditeur). */
+    public void rememberSensitivity(UUID player, double value) {
+        sensitivityMemory.put(player, value);
     }
 
     public boolean open(Player p, PaintTarget target, int size) {

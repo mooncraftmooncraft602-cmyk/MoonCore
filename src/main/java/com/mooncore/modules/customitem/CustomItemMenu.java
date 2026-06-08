@@ -44,7 +44,7 @@ public final class CustomItemMenu implements InventoryHolder {
         int pages = Math.max(1, (int) Math.ceil(ids.size() / (double) PER_PAGE));
         int pg = Math.min(page, pages - 1);
         this.inventory = Bukkit.createInventory(this, SIZE,
-                Text.mm("<gradient:#8a2be2:#c77dff>Objets custom</gradient> <dark_gray>(" + (pg + 1) + "/" + pages + ")"));
+                Text.mm("<gradient:#8a2be2:#c77dff>Menu créatif — objets custom</gradient> <dark_gray>(" + (pg + 1) + "/" + pages + ")"));
 
         int start = pg * PER_PAGE;
         for (int i = 0; i < PER_PAGE && start + i < ids.size(); i++) {

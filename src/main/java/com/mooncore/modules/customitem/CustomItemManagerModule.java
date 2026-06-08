@@ -207,6 +207,11 @@ public final class CustomItemManagerModule extends AbstractModule
     public com.mooncore.modules.customitem.paint.PaintManager paintManager() { return paintManager; }
     public com.mooncore.util.ChatInput chatInput() { return chatInput; }
 
+    /** Sensibilité par défaut du curseur de l'éditeur de texture (réglable aussi en jeu). */
+    public double paintCursorSensitivity() {
+        return moduleConfig().getDouble("paint.cursor-sensitivity", 1.0);
+    }
+
     public ItemStack buildItem(CustomItemDef def, int amount) { return factory.build(def, amount); }
 
     public static boolean isAir(ItemStack item) {

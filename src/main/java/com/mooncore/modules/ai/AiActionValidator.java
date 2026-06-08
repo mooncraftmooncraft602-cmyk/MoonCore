@@ -53,9 +53,18 @@ public final class AiActionValidator {
 
     /** Valide une sortie IA décrivant un item. {@code forcedId} impose l'id final. */
     public Result validateItem(String aiText, String forcedId) {
+        return validateItem(aiText, forcedId, -1);
+    }
+
+    /**
+     * @param maxAbilitiesOverride plafond de capacités pour CET appel ({@code <= 0} = défaut config).
+     *                             Relevé quand l'admin demande explicitement des pouvoirs.
+     */
+    public Result validateItem(String aiText, String forcedId, int maxAbilitiesOverride) {
         JsonObject root = parse(aiText);
         if (root == null) return Result.fail("La réponse IA n'est pas un JSON d'objet valide.");
 
+        int abilityCap = maxAbilitiesOverride > 0 ? maxAbilitiesOverride : maxAbilities;
         List<String> warnings = new ArrayList<>();
 
         String id = forcedId != null ? forcedId
@@ -130,8 +139,8 @@ public final class AiActionValidator {
                     warnings.add("Capacité inconnue ignorée : " + abId);
                     continue;
                 }
-                if (def.abilities().size() >= maxAbilities) {
-                    warnings.add("Trop de capacités → " + abId + " ignorée (max " + maxAbilities + ").");
+                if (def.abilities().size() >= abilityCap) {
+                    warnings.add("Trop de capacités → " + abId + " ignorée (max " + abilityCap + ").");
                     continue;
                 }
                 def.addAbility(abId, Math.max(1, Math.min(maxAbilityLevel, level)));

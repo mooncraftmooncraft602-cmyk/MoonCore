@@ -57,7 +57,10 @@ public final class PaintSettingsMenu implements InventoryHolder {
         inv.setItem(45, btn(Material.BRUSH, "<yellow>Brosse : " + session.brush(), "<dark_gray>clic = +1"));
         inv.setItem(46, btn(Material.ITEM_FRAME, "<yellow>Symétrie : " + session.symmetry()));
         inv.setItem(47, btn(Material.TNT, "<red>Supprimer cette couleur", "<dark_gray>clic droit = tout effacer"));
-        inv.setItem(48, pane);
+        inv.setItem(48, btn(Material.COMPASS, "<yellow>Sensibilité curseur : "
+                        + String.format(java.util.Locale.ROOT, "%.1f", session.sensitivity()),
+                "<gray>plus haut = bords/coins plus faciles",
+                "<dark_gray>clic gauche = +0,1 · clic droit = -0,1"));
         inv.setItem(49, currentColorItem());
         inv.setItem(50, btn(Material.RED_DYE, "<yellow>Annuler"));
         inv.setItem(51, btn(Material.LIME_DYE, "<yellow>Refaire"));
@@ -117,6 +120,12 @@ public final class PaintSettingsMenu implements InventoryHolder {
             }
             case 45 -> { session.setBrush(session.brush() % 4 + 1); rebuild(); }
             case 46 -> { session.cycleSymmetry(); rebuild(); }
+            case 48 -> {
+                session.setSensitivity(session.sensitivity() + (rightClick ? -0.1 : 0.1));
+                p.sendActionBar(Text.mm("<aqua>Sensibilité curseur : "
+                        + String.format(java.util.Locale.ROOT, "%.1f", session.sensitivity())));
+                rebuild();
+            }
             case 47 -> {
                 if (rightClick) { session.clearCanvas(); p.sendActionBar(Text.mm("<red>Toile effacée")); }
                 else { session.deleteCurrentColor(); p.sendActionBar(Text.mm("<red>Couleur supprimée partout")); }

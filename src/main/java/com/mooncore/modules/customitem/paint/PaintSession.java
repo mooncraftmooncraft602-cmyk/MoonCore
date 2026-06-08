@@ -47,6 +47,7 @@ public final class PaintSession {
     private int lastDrawX = -1, lastDrawY = -1;   // pour le trait continu (drag)
     private long lastDrawMs = 0;
     private boolean flipU = false;
+    private double sensitivity = 1.0;      // gain regard→toile (réglable dans le livre)
     private volatile boolean dirty = true; // déclenche un renvoi de la map
     private boolean worldPick = false;     // pipette « monde » : viser un bloc autour
     private Runnable onClose; // exécuté à la fermeture (ex. rouvrir le menu d'édition)
@@ -64,6 +65,8 @@ public final class PaintSession {
         this.manager = manager;
         this.owner = owner.getUniqueId();
         this.canvas = new PixelCanvas(size);
+        // Sensibilité : valeur retenue pour ce joueur, sinon défaut config du module.
+        this.sensitivity = clampSensitivity(manager.sensitivity(this.owner, defaultSensitivity()));
         // Priorité à la texture importée si fournie, sinon la texture propre de la cible.
         java.io.File base = (sourceTexture != null && sourceTexture.isFile()) ? sourceTexture : target.textureFile();
         loadFrom(base);
@@ -291,7 +294,26 @@ public final class PaintSession {
 
     private int[] aim(Player p) {
         if (frame == null || !frame.isValid()) return null;
-        return PaintRaytracer.texel(p, frame, canvas.size(), flipU);
+        return PaintRaytracer.texel(p, frame, canvas.size(), flipU, sensitivity);
+    }
+
+    // ---- Sensibilité du curseur (réglable dans le livre) ----
+
+    public double sensitivity() { return sensitivity; }
+
+    /** Règle la sensibilité (gain regard→toile) et la retient pour ce joueur. */
+    public void setSensitivity(double v) {
+        this.sensitivity = clampSensitivity(v);
+        manager.rememberSensitivity(owner, this.sensitivity);
+    }
+
+    private static double clampSensitivity(double v) {
+        return Math.max(0.5, Math.min(3.0, v));
+    }
+
+    private double defaultSensitivity() {
+        var m = plugin.moduleManager().get(com.mooncore.modules.customitem.CustomItemManagerModule.class);
+        return m != null ? m.paintCursorSensitivity() : 1.0;
     }
 
     // ---- Sauvegarde ----
@@ -330,12 +352,16 @@ public final class PaintSession {
     }
 
     private void pickFromWorld(Player p) {
-        org.bukkit.block.Block b = p.getTargetBlockExact(8);
-        if (b == null || b.getType().isAir()) { p.sendActionBar(Text.mm("<red>Aucun bloc visé.")); exitWorldPick(); return; }
-        int rgb = colorOfBlock(b);
+        // Raytrace précis : on échantillonne LE pixel exact visé sur la face du bloc,
+        // pas la couleur moyenne (permet de choisir précisément la teinte voulue).
+        org.bukkit.util.RayTraceResult rt = p.rayTraceBlocks(8);
+        org.bukkit.block.Block b = rt == null ? null : rt.getHitBlock();
+        if (rt == null || b == null || b.getType().isAir()) { p.sendActionBar(Text.mm("<red>Aucun bloc visé.")); exitWorldPick(); return; }
+        int rgb = pixelOfBlock(b, rt.getHitBlockFace(), rt.getHitPosition());
+        if (rgb == 0) rgb = colorOfBlock(b); // repli : couleur moyenne si l'échantillon échoue
         if (rgb != 0) {
             currentColor = 0xFF000000 | (rgb & 0xFFFFFF);
-            p.sendMessage(Text.mm("<green>Couleur prise sur <white>" + b.getType().name()
+            p.sendMessage(Text.mm("<green>Pixel pris sur <white>" + b.getType().name()
                     + "</white> → <white>#" + String.format("%06X", rgb & 0xFFFFFF)));
         } else {
             p.sendMessage(Text.mm("<yellow>Pas de texture pour ce bloc — couleur indisponible."));
@@ -343,6 +369,43 @@ public final class PaintSession {
         exitWorldPick();
         refreshColorItem();
     }
+
+    /** Couleur du pixel exact visé sur une face d'un bloc (0 si introuvable/transparent). */
+    private int pixelOfBlock(org.bukkit.block.Block b, org.bukkit.block.BlockFace face, org.bukkit.util.Vector hit) {
+        if (face == null || hit == null) return 0;
+        String n = b.getType().name().toLowerCase(java.util.Locale.ROOT);
+        String[] cand = switch (face) {
+            case UP -> new String[]{n + "_top", n, n + "_side"};
+            case DOWN -> new String[]{n + "_bottom", n + "_top", n};
+            default -> new String[]{n + "_side", n + "_front", n, n + "_0"};
+        };
+        java.io.File tex = null;
+        for (String c : cand) { tex = PaintManager.resolveTexture(plugin, c); if (tex != null) break; }
+        if (tex == null) return 0;
+        try {
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(tex);
+            if (img == null) return 0;
+            double lx = hit.getX() - b.getX(), ly = hit.getY() - b.getY(), lz = hit.getZ() - b.getZ();
+            double u, v;
+            switch (face) {
+                case UP, DOWN -> { u = lx; v = lz; }
+                case NORTH -> { u = 1 - lx; v = 1 - ly; }
+                case SOUTH -> { u = lx; v = 1 - ly; }
+                case WEST -> { u = lz; v = 1 - ly; }
+                case EAST -> { u = 1 - lz; v = 1 - ly; }
+                default -> { u = lx; v = lz; }
+            }
+            int px = (int) (clamp01(u) * (img.getWidth() - 1));
+            int py = (int) (clamp01(v) * (img.getHeight() - 1));
+            int argb = img.getRGB(px, py);
+            if ((argb >>> 24) < 16) return 0; // pixel transparent → repli
+            return argb & 0xFFFFFF;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static double clamp01(double v) { return Math.max(0.0, Math.min(0.9999, v)); }
 
     /** Couleur moyenne de la texture vanilla/custom d'un bloc (0 si introuvable). */
     private int colorOfBlock(org.bukkit.block.Block b) {

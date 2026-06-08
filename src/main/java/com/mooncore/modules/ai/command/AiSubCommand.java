@@ -43,7 +43,9 @@ public final class AiSubCommand implements SubCommand {
             case "set" -> setCfg(s, a);
             case "reload" -> { module.reloadModule(); msg(s, "<green>Configuration IA rechargée."); }
             case "history" -> history(s, a);
-            case "ask", "question", "chat" -> askQuestion(s, a);
+            // « ask » passe par le cerveau unifié : il peut répondre, créer (tout type,
+            // combiné) ou coder une action. L'IA choisit elle-même la catégorie.
+            case "ask", "question", "chat" -> createUnified(s, join(a, 1));
             case "config", "configure" -> configModule(s, a);
             case "code" -> code(s, a);
             case "coderun" -> codeRun(s);
@@ -77,6 +79,7 @@ public final class AiSubCommand implements SubCommand {
         if (rawPrompt == null || rawPrompt.isBlank()) { help(s); return; }
         final boolean texWanted = wantsTexture(rawPrompt.split("\\s+"));
         final String prompt = joinNoFlags(rawPrompt.split("\\s+"), 0); // retire le mot-clé "texture"
+        final int cap = abilityCap(prompt);
         var ci = module.customItemModule();
         var bm = module.bossModule();
         var cb = module.blockModule();
@@ -87,6 +90,8 @@ public final class AiSubCommand implements SubCommand {
                 fail(s, "create", prompt, "rien à créer (réponse IA inattendue)"); return;
             }
             java.util.List<java.util.concurrent.CompletableFuture<Void>> tex = new java.util.ArrayList<>();
+            java.util.List<String> codeTasks = new java.util.ArrayList<>();
+            boolean[] answered = {false};
             int[] count = {0, 0, 0}; // items, blocks, bosses
             int max = Math.min(8, creations.size());
             for (int i = 0; i < max; i++) {
@@ -95,6 +100,18 @@ public final class AiSubCommand implements SubCommand {
                 String kind = String.valueOf(el.getOrDefault("kind", "item")).toLowerCase(Locale.ROOT);
                 try {
                     switch (kind) {
+                        case "answer", "reponse", "réponse" -> {
+                            Object t = el.get("text");
+                            if (t != null && !t.toString().isBlank()) {
+                                msg(s, "<gradient:#8a2be2:#c77dff>IA</gradient> <dark_gray>»");
+                                for (String line : t.toString().split("\n")) if (!line.isBlank()) msg(s, "<white>" + line.trim());
+                                answered[0] = true;
+                            }
+                        }
+                        case "code", "script", "action" -> {
+                            Object t = el.get("task");
+                            if (t != null && !t.toString().isBlank()) codeTasks.add(t.toString());
+                        }
                         case "block", "ore", "minerai" -> {
                             if (cb == null) break;
                             var def = buildBlockDef(el);
@@ -113,7 +130,7 @@ public final class AiSubCommand implements SubCommand {
                         }
                         default -> { // item
                             if (ci == null) break;
-                            AiActionValidator.Result r = module.validator().validateItem(GSON.toJson(el), null);
+                            AiActionValidator.Result r = module.validator().validateItem(GSON.toJson(el), null, cap);
                             if (r.ok() && r.def() != null) {
                                 CustomItemDef def = r.def();
                                 ci.put(def);
@@ -130,7 +147,14 @@ public final class AiSubCommand implements SubCommand {
                 }
             }
             int total = count[0] + count[1] + count[2];
-            if (total == 0) { fail(s, "create", prompt, "aucun élément valide généré"); return; }
+            // L'IA a demandé du code (action non couverte par les données) → génère + exécute.
+            for (String task : codeTasks) runCodeTask(s, task);
+
+            if (total == 0) {
+                if (answered[0] || !codeTasks.isEmpty()) ok(s, "create", prompt, "réponse/action");
+                else fail(s, "create", prompt, "aucun élément valide généré");
+                return;
+            }
             String summary = "<green>✔ Créé : <white>" + count[0] + " objet(s), " + count[1] + " bloc(s), " + count[2] + " boss";
             if (tex.isEmpty()) { // pas de texture demandée → rien à reconstruire
                 msg(s, summary + "<green>. <dark_gray>(ajoute « texture » pour générer les textures)");
@@ -145,6 +169,45 @@ public final class AiSubCommand implements SubCommand {
                         }));
             }
             ok(s, "create", prompt, total + " éléments");
+        });
+    }
+
+    /**
+     * L'IA a jugé que la demande nécessite du code : génère un script Java (mode dév) puis
+     * l'exécute après un court aperçu. Réservé à l'owner (mode développeur + JDK requis).
+     */
+    private void runCodeTask(CommandSender s, String task) {
+        if (!module.devMode()) {
+            msg(s, "<yellow>⚠ Pour « " + shorten(task, 50) + " » il faut du code, mais le mode "
+                    + "développeur est désactivé. <gray>Active-le : <white>/moon ai set developer-mode true</white> (puis /moon ai reload).");
+            return;
+        }
+        if (!module.scriptEngine().available(module.javacPath())) {
+            msg(s, "<yellow>⚠ Pas de compilateur Java (javac). <gray>Règle <white>/moon ai set javac-path …");
+            return;
+        }
+        msg(s, "<gray>🛠 L'IA code : <white>" + shorten(task, 60) + "<gray>…");
+        ask(s, "code", task, module.prompts().codeSystem(), text -> {
+            String src = stripFences(text);
+            if (!src.contains("implements") || !src.contains("GeneratedScript")) {
+                fail(s, "code", task, "réponse IA inattendue (pas de classe GeneratedScript)"); return;
+            }
+            try {
+                java.io.File dir = new java.io.File(module.mc().getDataFolder(), "scripts");
+                dir.mkdirs();
+                java.nio.file.Files.writeString(new java.io.File(dir, "GeneratedScript.java").toPath(), src);
+            } catch (Exception ignored) { }
+            String[] lines = src.split("\n");
+            msg(s, "<dark_gray>Code généré (" + lines.length + " lignes) — exécution…");
+            String err = module.scriptEngine().compileAndRun(src, module.mc(), s, module.javacPath());
+            if (err == null) {
+                msg(s, "<green>✔ Action exécutée.");
+                module.audit().record(s.getName(), "ai-code", task, "OK", "OK", System.currentTimeMillis());
+            } else {
+                msg(s, "<red>✖ " + err);
+                msg(s, "<gray>Code conservé dans plugins/MoonCore/scripts/GeneratedScript.java");
+                module.audit().record(s.getName(), "ai-code", task, err, "ERREUR", System.currentTimeMillis());
+            }
         });
     }
 
@@ -327,16 +390,6 @@ public final class AiSubCommand implements SubCommand {
         return t.trim();
     }
 
-    private void askQuestion(CommandSender s, String[] a) {
-        if (a.length < 2) { msg(s, "<red>/moon ai ask <ta question...>"); return; }
-        String prompt = join(a, 1);
-        ask(s, "ask", prompt, module.prompts().assistantSystem(), text -> {
-            msg(s, "<gradient:#8a2be2:#c77dff>IA</gradient> <dark_gray>»");
-            for (String line : text.split("\n")) if (!line.isBlank()) msg(s, "<white>" + line.trim());
-            ok(s, "ask", prompt, "réponse Q&A");
-        });
-    }
-
     private void createBoss(CommandSender s, String[] a) {
         if (a.length < 2) { msg(s, "<red>/moon ai createboss <description...>"); return; }
         var bm = module.bossModule();
@@ -444,8 +497,9 @@ public final class AiSubCommand implements SubCommand {
         if (a.length < 2) { msg(s, "<red>/moon ai createitem <description...> [texture]"); return; }
         boolean tex = wantsTexture(a);
         String prompt = joinNoFlags(a, 1);
+        int cap = abilityCap(prompt);
         ask(s, "createitem", prompt, module.prompts().itemSchemaSystem(), text -> {
-            AiActionValidator.Result r = module.validator().validateItem(text, null);
+            AiActionValidator.Result r = module.validator().validateItem(text, null, cap);
             applyNewDef(s, "createitem", prompt, r, null, tex);
         });
     }
@@ -457,10 +511,12 @@ public final class AiSubCommand implements SubCommand {
         CustomItemDef cur = ci.rawDef(a[1]);
         if (cur == null) { msg(s, "<red>Objet inconnu : " + a[1]); return; }
         boolean tex = wantsTexture(a);
-        String prompt = "Objet actuel : " + summary(cur) + "\nModification demandée : " + joinNoFlags(a, 2)
+        String mod = joinNoFlags(a, 2);
+        int cap = abilityCap(mod);
+        String prompt = "Objet actuel : " + summary(cur) + "\nModification demandée : " + mod
                 + "\nRenvoie l'objet COMPLET mis à jour (même id).";
         ask(s, "modifyitem", prompt, module.prompts().itemSchemaSystem(), text -> {
-            AiActionValidator.Result r = module.validator().validateItem(text, cur.id());
+            AiActionValidator.Result r = module.validator().validateItem(text, cur.id(), cap);
             applyNewDef(s, "modifyitem", prompt, r, null, tex);
         });
     }
@@ -470,8 +526,9 @@ public final class AiSubCommand implements SubCommand {
         String bossId = a[1].toLowerCase(Locale.ROOT);
         boolean tex = wantsTexture(a);
         String prompt = joinNoFlags(a, 2);
+        int cap = abilityCap(prompt);
         ask(s, "createbossdrop", prompt, module.prompts().itemSchemaSystem(), text -> {
-            AiActionValidator.Result r = module.validator().validateItem(text, null);
+            AiActionValidator.Result r = module.validator().validateItem(text, null, cap);
             applyNewDef(s, "createbossdrop", prompt, r,
                     def -> def.drops().add(new CustomItemDef.DropRule("boss:" + bossId, 0.25, 1, 1)), tex);
         });
@@ -482,8 +539,9 @@ public final class AiSubCommand implements SubCommand {
         String eventId = a[1].toLowerCase(Locale.ROOT);
         boolean tex = wantsTexture(a);
         String prompt = joinNoFlags(a, 2);
+        int cap = abilityCap(prompt);
         ask(s, "createreward", prompt, module.prompts().itemSchemaSystem(), text -> {
-            AiActionValidator.Result r = module.validator().validateItem(text, null);
+            AiActionValidator.Result r = module.validator().validateItem(text, null, cap);
             applyNewDef(s, "createreward", prompt, r,
                     def -> def.drops().add(new CustomItemDef.DropRule("event:" + eventId, 1.0, 1, 1)), tex);
         });
@@ -515,11 +573,13 @@ public final class AiSubCommand implements SubCommand {
         if (ci == null) { msg(s, "<red>CustomItemManager requis."); return; }
         CustomItemDef def = ci.rawDef(a[1]);
         if (def == null) { msg(s, "<red>Objet inconnu : " + a[1]); return; }
+        String consignes = a.length > 2 ? join(a, 2) : "";
+        int cap = abilityCap(consignes);
         String prompt = "Rééquilibre cet objet : " + summary(def)
-                + (a.length > 2 ? "\nConsignes : " + join(a, 2) : "")
+                + (consignes.isEmpty() ? "" : "\nConsignes : " + consignes)
                 + "\nRenvoie l'objet COMPLET équilibré (même id, type, rareté).";
         ask(s, "balanceitem", prompt, module.prompts().itemSchemaSystem(), text -> {
-            AiActionValidator.Result r = module.validator().validateItem(text, def.id());
+            AiActionValidator.Result r = module.validator().validateItem(text, def.id(), cap);
             applyNewDef(s, "balanceitem", prompt, r, null);
         });
     }
@@ -594,6 +654,30 @@ public final class AiSubCommand implements SubCommand {
     private static boolean wantsTexture(String[] a) {
         for (String x : a) if (TEX_FLAGS.contains(x.toLowerCase(Locale.ROOT))) return true;
         return false;
+    }
+
+    // Indices que l'admin demande EXPLICITEMENT des pouvoirs/capacités → relève le plafond.
+    private static final java.util.Set<String> POWER_HINTS = java.util.Set.of(
+            "pouvoir", "pouvoirs", "capacite", "capacites", "capacité", "capacités", "magie",
+            "magique", "sort", "sortilege", "sortilège", "effet", "effets", "special", "spécial",
+            "speciale", "spéciale", "ability", "abilities", "power", "powers", "drain", "draine",
+            "vampir", "saigne", "saignement", "wither", "fletri", "flétri", "tenebre", "ténèbre",
+            "tenebres", "ténèbres", "foudre", "eclair", "éclair", "explos", "aspire", "teleport",
+            "téléport", "frenesie", "frénésie", "fureur", "execut", "exécut", "malediction",
+            "malédiction", "3x3", "filon", "vein", "fondu", "fonte", "smelt", "abat", "abattre",
+            "timber", "aimant", "magnet", "replant", "ralenti", "gel", "givre");
+
+    /** True si la consigne évoque des pouvoirs/capacités/effets (autorise plus de capacités). */
+    private static boolean wantsPowers(String prompt) {
+        if (prompt == null) return false;
+        String low = prompt.toLowerCase(Locale.ROOT);
+        for (String h : POWER_HINTS) if (low.contains(h)) return true;
+        return false;
+    }
+
+    /** Plafond de capacités pour cet appel : élevé si pouvoirs demandés, sinon défaut (-1). */
+    private static int abilityCap(String prompt) {
+        return wantsPowers(prompt) ? 6 : -1;
     }
 
     /** Joint les args à partir de {@code from} en retirant les mots-clés de texture. */
@@ -738,8 +822,8 @@ public final class AiSubCommand implements SubCommand {
     private void help(CommandSender s) {
         msg(s, "<gradient:#8a2be2:#c77dff>/moon ai</gradient> <gray>— assistant IA admin");
         String[] lines = {
-                "<gold>create <description></gold> — l'IA choisit le type et crée (plusieurs possibles !)",
-                "ask <question> (poser une question libre à l'IA)",
+                "<gold>ask/create <ce que tu veux></gold> — l'IA répond, crée (objet/bloc/boss, combinés) ou CODE l'action",
+                "<dark_gray>↳ capacités (magie noire, pioche 3x3…) ajoutées UNIQUEMENT si demandées ; ajoute « texture » pour générer les images",
                 "config <instruction> (modifie la config d'un module existant)",
                 "code <desc> + coderun (générer/exécuter du Java — mode dev, JDK requis)",
                 "model <list|set> / set <clé> <valeur> (autre API) / reload / history [n]",

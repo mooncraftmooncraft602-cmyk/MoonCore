@@ -34,6 +34,7 @@ public final class AbilityRegistry {
     public AbilityRegistry(MoonCore plugin) {
         this.plugin = plugin;
         registerBuiltins();
+        AbilityCatalog.register(this, plugin); // pouvoirs de magie noire + capacités d'outils
     }
 
     public void register(Ability ability) {

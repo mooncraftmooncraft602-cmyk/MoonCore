@@ -107,6 +107,9 @@ public final class CustomItemListener implements Listener {
     public void onAttack(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player p)) return;
         if (!(e.getEntity() instanceof LivingEntity victim)) return;
+        // Coup secondaire d'une capacité (fendoir, chaîne d'éclairs, riposte…) → on n'applique
+        // PAS à nouveau crit/multiplicateurs/on-hit pour éviter toute récursion.
+        if (com.mooncore.modules.customitem.ability.AbilityGuard.attacking(p)) return;
         ItemStack weapon = p.getInventory().getItemInMainHand();
         CustomItemDef def = defOf(weapon);
         if (def == null) return;
@@ -143,6 +146,14 @@ public final class CustomItemListener implements Listener {
             double max = maxHealth(p);
             p.setHealth(Math.min(max, p.getHealth() + heal));
         }
+
+        // Capacités passives « on-hit » (hémorragie, exécution, fendoir, wither…).
+        for (CustomItemDef.AbilityRef ref : def.abilities()) {
+            Ability ab = module.abilities().get(ref.id());
+            if (ab == null || ab.hitHandler() == null) continue;
+            try { ab.hitHandler().onHit(p, victim, e, ref.level()); }
+            catch (Throwable t) { module.mc().logger().error("Erreur on-hit " + ref.id(), t); }
+        }
     }
 
     // ============================================================
@@ -152,14 +163,44 @@ public final class CustomItemListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDefend(EntityDamageEvent e) {
         if (!(e.getEntity() instanceof Player p)) return;
+
+        // Vulnérabilité « frénésie » (capacité active berserk_frenzy) : +15% de dégâts subis.
+        long frenzy = p.getPersistentDataContainer().getOrDefault(
+                org.bukkit.NamespacedKey.fromString("mooncore:frenzy_until"),
+                org.bukkit.persistence.PersistentDataType.LONG, 0L);
+        if (frenzy > System.currentTimeMillis()) e.setDamage(e.getDamage() * 1.15);
+
         int resistLevels = 0;
         for (ItemStack armor : p.getInventory().getArmorContents()) {
             CustomItemDef def = defOf(armor);
             if (def != null) resistLevels += passiveLevel(def, "resistance");
         }
-        if (resistLevels <= 0) return;
-        double reduction = Math.min(0.6, resistLevels * 0.05); // 5%/niveau, plafond 60%
-        e.setDamage(e.getDamage() * (1.0 - reduction));
+        if (resistLevels > 0) {
+            double reduction = Math.min(0.6, resistLevels * 0.05); // 5%/niveau, plafond 60%
+            e.setDamage(e.getDamage() * (1.0 - reduction));
+        }
+
+        // Capacités passives « on-defend » (riposte, épines, second souffle) — armure + arme tenue.
+        // Garde : si CE joueur est déjà en train de riposter, on ne re-déclenche pas.
+        if (com.mooncore.modules.customitem.ability.AbilityGuard.defending(p)) return;
+        java.util.List<ItemStack> worn = new java.util.ArrayList<>(java.util.Arrays.asList(p.getInventory().getArmorContents()));
+        worn.add(p.getInventory().getItemInMainHand());
+        com.mooncore.modules.customitem.ability.AbilityGuard.setDefending(p);
+        try {
+            java.util.Set<String> fired = new java.util.HashSet<>(); // une capacité ne s'applique qu'une fois
+            for (ItemStack piece : worn) {
+                CustomItemDef def = defOf(piece);
+                if (def == null) continue;
+                for (CustomItemDef.AbilityRef ref : def.abilities()) {
+                    Ability ab = module.abilities().get(ref.id());
+                    if (ab == null || ab.defendHandler() == null || !fired.add(ref.id())) continue;
+                    try { ab.defendHandler().onDefend(p, e, ref.level()); }
+                    catch (Throwable t) { module.mc().logger().error("Erreur on-defend " + ref.id(), t); }
+                }
+            }
+        } finally {
+            com.mooncore.modules.customitem.ability.AbilityGuard.clearDefending(p);
+        }
     }
 
     // ============================================================
@@ -169,10 +210,23 @@ public final class CustomItemListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent e) {
         Player p = e.getPlayer();
+        // Cassure en chaîne d'un outil (3x3, filon, abattage…) → on n'enchaîne pas récursivement.
+        if (com.mooncore.modules.customitem.ability.AbilityGuard.mining(p)) return;
         ItemStack tool = p.getInventory().getItemInMainHand();
         CustomItemDef def = defOf(tool);
         if (def == null) return;
 
+        // Capacités passives « on-mine » (3x3, filon, fonte, abattage, aimant…).
+        for (CustomItemDef.AbilityRef ref : def.abilities()) {
+            Ability ab = module.abilities().get(ref.id());
+            if (ab == null || ab.mineHandler() == null) continue;
+            try { ab.mineHandler().onMine(p, e.getBlock(), e, ref.level()); }
+            catch (Throwable t) { module.mc().logger().error("Erreur on-mine " + ref.id(), t); }
+        }
+
+        // Si une capacité d'outil a déjà consommé/redirigé les drops (fonte/aimant/télékinésie),
+        // on n'ajoute pas de bonus fortune au sol (sinon duplication / items éparpillés).
+        if (!e.isDropItems()) return;
         int fortune = passiveLevel(def, "fortune");
         int harvest = passiveLevel(def, "harvest");
         double harvestBonus = stat(def, ItemStats.HARVEST_BONUS);

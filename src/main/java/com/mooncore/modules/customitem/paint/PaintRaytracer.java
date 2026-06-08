@@ -17,17 +17,27 @@ public final class PaintRaytracer {
     // bord/coin le plus proche (clamp). N'affecte QUE les texels extérieurs (la précision
     // au centre reste intacte) → rend les coins/bords faciles à atteindre.
     private static final double MARGIN = 1.0;
+    // La map d'un item frame est rendue sur la FACE du bloc (≈0,5 vers le joueur), PAS au
+    // centre du bloc. On décale donc le plan d'intersection le long de la normale pour qu'il
+    // coïncide avec la toile VISIBLE — sinon parallaxe : on doit viser hors du cadre pour
+    // atteindre les bords (bug remonté). +0,5 = face avant du bloc, côté joueur.
+    private static final double SURFACE_OFFSET = 0.5;
 
     private PaintRaytracer() {}
 
-    /** @return {x,y} dans [0,size) ou null si le joueur ne vise pas la toile. */
-    public static int[] texel(Player p, ItemFrame frame, int size, boolean flipU) {
+    /**
+     * @param sensitivity gain appliqué au mappage regard→toile : >1 = la toile « répond »
+     *                    plus (bords plus faciles avec moins de mouvement), 1 = neutre.
+     * @return {x,y} dans [0,size) ou null si le joueur ne vise pas la toile.
+     */
+    public static int[] texel(Player p, ItemFrame frame, int size, boolean flipU, double sensitivity) {
         Location eye = p.getEyeLocation();
         Vector origin = eye.toVector();
         Vector dir = eye.getDirection();
 
         Vector normal = frame.getFacing().getDirection();      // face vers le joueur
-        Vector center = frame.getLocation().getBlock().getLocation().add(0.5, 0.5, 0.5).toVector();
+        Vector center = frame.getLocation().getBlock().getLocation().add(0.5, 0.5, 0.5).toVector()
+                .add(normal.clone().multiply(SURFACE_OFFSET));  // plan = surface visible de la map
 
         double denom = normal.dot(dir);
         if (Math.abs(denom) < 1e-6) return null;                // rayon parallèle au plan
@@ -41,8 +51,9 @@ public final class PaintRaytracer {
         // toutes les faces, et cohérent avec le sens de dessin de la map.
         Vector uAxis = new Vector(0, 1, 0).crossProduct(normal).normalize();
         if (flipU) uAxis = uAxis.clone().multiply(-1);
-        double u = rel.dot(uAxis);      // attendu dans [-0.5, 0.5]
-        double v = rel.getY();          // vAxis = +Y
+        double gain = sensitivity <= 0 ? 1.0 : sensitivity;
+        double u = rel.dot(uAxis) * gain;   // attendu dans [-0.5, 0.5] (×gain)
+        double v = rel.getY() * gain;       // vAxis = +Y
         if (Math.abs(u) > 0.5 + MARGIN || Math.abs(v) > 0.5 + MARGIN) return null; // hors toile
 
         int x = clamp((int) Math.floor((u + 0.5) * size), size);

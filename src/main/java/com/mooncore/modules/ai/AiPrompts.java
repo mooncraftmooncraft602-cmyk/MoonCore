@@ -23,8 +23,37 @@ public final class AiPrompts {
 
     private String abilitiesList() {
         return abilities.all().stream()
-                .map(a -> a.id() + " (" + (a.isActive() ? "actif" : "passif") + ")")
+                .map(a -> a.id() + (a.special() ? "*" : "") + " (" + (a.isActive() ? "actif" : "passif") + ")")
                 .collect(Collectors.joining(", "));
+    }
+
+    /** Doc des capacités « spéciales » (opt-in) : id → description, pour mapper le langage naturel. */
+    private String specialAbilitiesDoc() {
+        return abilities.all().stream()
+                .filter(com.mooncore.modules.customitem.ability.Ability::special)
+                .map(a -> "  - " + a.id() + " : " + a.description())
+                .collect(Collectors.joining("\n"));
+    }
+
+    /** Règle commune : capacités opt-in (jamais ajoutées sans demande explicite). */
+    private String abilityPolicy() {
+        return """
+                CAPACITÉS — RÈGLE STRICTE :
+                - N'ajoute AUCUNE capacité par défaut. Laisse "abilities": [] SAUF si l'admin
+                  demande EXPLICITEMENT des pouvoirs/effets/magie/capacités spéciales (ex.
+                  « épée de magie noire qui draine la vie », « pioche qui mine en 3x3 »,
+                  « armure qui renvoie les dégâts »).
+                - Les capacités marquées d'une * sont puissantes (magie noire innée aux armes,
+                  pouvoirs d'outils) : utilise-les UNIQUEMENT sur demande, en choisissant celles
+                  qui collent à la description. Mets le bon "level" (1-5, plus haut = plus fort).
+                - Capacités d'outils (pioche/hache/pelle/houe) : tunnel_3x3, vein_miner, auto_smelt,
+                  timber, magnet_pickup, telekinesis, auto_replant, explosive_mine, fortune_surge,
+                  haste_on_mine — seulement si l'outil doit avoir ce comportement.
+                - Si l'admin en demande « plein » / « le plus possible », tu peux en combiner
+                  plusieurs (3-5) cohérentes ensemble.
+                Catalogue des capacités spéciales :
+                %SPECIAL_ABILITIES%
+                """.replace("%SPECIAL_ABILITIES%", specialAbilitiesDoc());
     }
 
     private static String statsList() {
@@ -62,7 +91,9 @@ public final class AiPrompts {
                 }
 
                 Stats autorisées : %STATS%.
-                Capacités autorisées (utilise UNIQUEMENT celles-ci) : %ABILITIES%.
+                Capacités autorisées (utilise UNIQUEMENT celles-ci ; * = spéciale/opt-in) : %ABILITIES%.
+
+                %ABILITY_POLICY%
 
                 ÉQUILIBRAGE STRICT (un objet ne doit JAMAIS être cheaté) — référence :
                 une épée netherite vanilla fait 8 de dégâts. Plafonds ABSOLUS (même pour
@@ -85,6 +116,7 @@ public final class AiPrompts {
                 .replace("%TYPES%", typesList())
                 .replace("%RARITIES%", raritiesList())
                 .replace("%STATS%", statsList())
+                .replace("%ABILITY_POLICY%", abilityPolicy())
                 .replace("%ABILITIES%", abilitiesList());
     }
 
@@ -99,20 +131,31 @@ public final class AiPrompts {
      */
     public String unifiedCreateSystem() {
         return """
-                Tu es le moteur de création de MoonCore (serveur Minecraft RPG). L'admin
-                décrit ce qu'il veut ; TU choisis le(s) type(s) appropriés et tu peux créer
-                PLUSIEURS éléments en une fois. Réponds UNIQUEMENT par un JSON :
-                { "creations": [ {"kind":"item|block|boss", ...champs...}, ... ] }
+                Tu es le cerveau de MoonCore (serveur Minecraft RPG). L'admin te parle ; TU
+                choisis quoi faire : RÉPONDRE à une question, CRÉER un ou plusieurs éléments
+                (objet/bloc/boss, combinables), ou CODER une fonctionnalité que les données ne
+                permettent pas. Réponds UNIQUEMENT par un JSON :
+                { "creations": [ {"kind":"item|block|boss|answer|code", ...champs...}, ... ] }
                 (1 à 8 éléments max). Aucun texte hors JSON.
+
+                kind="answer" → simple réponse/explication. Champs : text (string, français).
+                  Utilise-le quand l'admin pose une QUESTION et ne demande pas de création.
+
+                kind="code" → l'admin demande une action que item/block/boss ne couvrent PAS
+                  (ex. « fais pleuvoir des poulets », « téléporte tous les joueurs au spawn »,
+                  « donne 64 diamants à tout le monde »). Champs : task (string : décris
+                  précisément, en français, ce que le code Java doit faire). Le serveur
+                  générera puis exécutera ce code (mode développeur requis).
 
                 kind="item" → objet/arme/armure/outil/lingot/accessoire. Champs :
                   id, display_name (MiniMessage), type (un de [%TYPES%]),
                   rarity (un de [%RARITIES%]), material (Material Bukkit MAJ),
                   lore (array), stats {<stat>:nombre}, abilities [{id,level}],
                   glowing, unbreakable.
-                  Stats autorisées : %STATS%. Capacités : %ABILITIES%.
+                  Stats autorisées : %STATS%. Capacités (* = spéciale/opt-in) : %ABILITIES%.
+                  %ABILITY_POLICY%
                   ÉQUILIBRAGE strict : damage≤15, crit_damage≤150, boss_damage≤75,
-                  life_steal≤20, max 2 capacités, 4 stats. Jamais cheaté.
+                  life_steal≤20, 4 stats max. Jamais cheaté.
 
                 kind="block" → bloc ou minerai. Champs :
                   id, display-name (MiniMessage), drop-xp (entier), requires-pickaxe (bool),
@@ -132,6 +175,7 @@ public final class AiPrompts {
                 .replace("%RARITIES%", raritiesList())
                 .replace("%STATS%", statsList())
                 .replace("%BOSS_ABILITIES%", bossAbilities())
+                .replace("%ABILITY_POLICY%", abilityPolicy())
                 .replace("%ABILITIES%", abilitiesList());
     }
 
