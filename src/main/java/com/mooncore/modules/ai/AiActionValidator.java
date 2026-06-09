@@ -162,6 +162,28 @@ public final class AiActionValidator {
             }
         }
 
+        // Enchantements vanilla : { "sharpness": 5, ... } (clé inconnue ignorée par la factory).
+        if (root.has("enchants") && root.get("enchants").isJsonObject()) {
+            JsonObject enc = root.getAsJsonObject("enchants");
+            for (String k : enc.keySet()) {
+                try { def.setEnchant(k, Math.max(1, Math.min(5, enc.get(k).getAsInt()))); }
+                catch (Exception ignored) { warnings.add("Enchantement ignoré : " + k); }
+            }
+        }
+
+        // Effets de consommation : [ {"effect":"speed","duration":10,"amplifier":1}, ... ] (duration en s).
+        if (root.has("consume_effects") && root.get("consume_effects").isJsonArray()) {
+            for (JsonElement el : root.getAsJsonArray("consume_effects")) {
+                if (!el.isJsonObject()) continue;
+                JsonObject o = el.getAsJsonObject();
+                String key = str(o, "effect", null);
+                if (key == null) continue;
+                int seconds = Math.max(1, Math.min(600, intOf(o, "duration", 10)));
+                int amp = Math.max(0, Math.min(4, intOf(o, "amplifier", 0)));
+                def.setConsumeEffect(key.toLowerCase(Locale.ROOT), seconds * 20, amp);
+            }
+        }
+
         return new Result(true, def, warnings, null);
     }
 

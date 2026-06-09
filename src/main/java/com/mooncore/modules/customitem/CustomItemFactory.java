@@ -134,6 +134,16 @@ public final class CustomItemFactory {
             }
         }
 
+        // Effets de consommation (potions/nourriture custom).
+        if (!def.consumeEffects().isEmpty()) {
+            lore.add(Component.empty());
+            lore.add(line("<gray>À la consommation :"));
+            for (CustomItemDef.ConsumeEffect ce : def.consumeEffects()) {
+                lore.add(line(" <dark_gray>▸ <aqua>" + prettyKey(ce.key()) + " <white>" + (ce.amplifier() + 1)
+                        + " <dark_gray>(" + (ce.duration() / 20) + "s)"));
+            }
+        }
+
         // Lore narratif libre.
         if (!def.lore().isEmpty()) {
             lore.add(Component.empty());
@@ -175,6 +185,18 @@ public final class CustomItemFactory {
 
     private static Attribute matchAttribute(String name) {
         return com.mooncore.util.Attrs.byKey(name);
+    }
+
+    /** "fire_resistance" → "Fire Resistance" (libellé lisible d'une clé d'effet). */
+    private static String prettyKey(String key) {
+        String[] parts = key.replace('_', ' ').trim().split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String w : parts) {
+            if (w.isEmpty()) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        }
+        return sb.toString();
     }
 
     @SuppressWarnings("deprecation") // Registry.ENCHANTMENT.get : stable en 1.21.1 (RegistryAccess = plus lourd)

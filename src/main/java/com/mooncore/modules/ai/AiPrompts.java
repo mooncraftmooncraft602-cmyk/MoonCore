@@ -88,6 +88,11 @@ public final class AiPrompts {
                   "lore": ["lignes MiniMessage de description/lore"],
                   "stats": { "<stat>": nombre, ... },
                   "abilities": [ { "id": "<capacité>", "level": entier } ],
+                  "enchants": { "<enchantement vanilla>": niveau, ... } (optionnel ; clés
+                            comme sharpness, protection, efficiency, unbreaking, fortune…),
+                  "consume_effects": [ { "effect": "<effet vanilla>", "duration": secondes,
+                            "amplifier": entier } ] (optionnel ; UNIQUEMENT pour type=consumable,
+                            ex potion/nourriture ; effets comme speed, regeneration, strength…),
                   "glowing": booléen,
                   "unbreakable": booléen
                 }
