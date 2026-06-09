@@ -31,3 +31,6 @@ Thumbs.db
 # Runtime test server
 run/
 logs/
+
+# Fichiers temporaires javac (lint)
+javac.*.args
