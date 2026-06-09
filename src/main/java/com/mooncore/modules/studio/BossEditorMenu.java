@@ -74,6 +74,8 @@ public final class BossEditorMenu implements StudioMenu {
         inv.setItem(22, StudioItems.btn(Material.FEATHER, "<aqua>Vitesse : <white>" + String.format(java.util.Locale.ROOT, "%.2f", def.speed()), "<gray>clic = +0.02 · clic droit = -0.02"));
         inv.setItem(23, StudioItems.btn(Material.EXPERIENCE_BOTTLE, "<green>XP progression : <white>" + def.progressionXp(), "<gray>clic = +250 · clic droit = -250"));
         inv.setItem(24, StudioItems.btn(Material.ZOMBIE_HEAD, "<yellow>Entité : <white>" + def.entityType().name(), "<gray>clic = saisir EntityType"));
+        inv.setItem(25, StudioItems.btn(Material.ARMOR_STAND, "<gold>Équipement", "<gray>casque, plastron, armes… (objets custom ou vanilla)"));
+        inv.setItem(26, StudioItems.btn(Material.RED_STAINED_GLASS, "<gold>Éditer les phases", "<gray>seuils de PV + capacités par phase (GUI)"));
 
         inv.setItem(28, StudioItems.btn(Material.SHIELD, "<gold>Preset phases Tank"));
         inv.setItem(29, StudioItems.btn(Material.BLAZE_ROD, "<light_purple>Preset phases Mage"));
@@ -102,6 +104,8 @@ public final class BossEditorMenu implements StudioMenu {
             case 22 -> { module.setField(id, "speed", Math.max(0.1, Math.min(0.6, def.speed() + (rightClick ? -0.02 : 0.02)))); build(); }
             case 23 -> { module.setField(id, "progression-xp", Math.max(0, def.progressionXp() + (rightClick ? -250 : 250))); build(); }
             case 24 -> askEntity(p, module);
+            case 25 -> BossEquipmentMenu.open(plugin, chat, p, id);
+            case 26 -> BossPhaseMenu.open(plugin, chat, p, id);
             case 28 -> { module.setPhases(id, StudioBossMenu.phases("tank")); p.sendMessage(Text.mm("<green>Preset tank appliqué.")); }
             case 29 -> { module.setPhases(id, StudioBossMenu.phases("mage")); p.sendMessage(Text.mm("<green>Preset mage appliqué.")); }
             case 30 -> { module.setPhases(id, StudioBossMenu.phases("summoner")); p.sendMessage(Text.mm("<green>Preset invocateur appliqué.")); }

@@ -21,6 +21,7 @@ import java.util.List;
 public final class BossDropMenu implements StudioMenu {
 
     private static final double[] CHANCES = {0.05, 0.10, 0.25, 0.50, 1.0};
+    private static final int[] AMOUNTS = {1, 2, 3, 5, 8, 16};
 
     private final MoonCore plugin;
     private final ChatInput chat;
@@ -58,11 +59,11 @@ public final class BossDropMenu implements StudioMenu {
         for (int i = 0; i < per && start + i < ids.size(); i++) {
             CustomItemDef def = module.rawDef(ids.get(start + i));
             if (def == null) continue;
-            double ch = chanceOf(def);
-            String state = ch > 0 ? "<green>DROP " + Math.round(ch * 100) + "%" : "<dark_gray>non";
+            CustomItemDef.DropRule r = ruleOf(def);
+            String state = r != null ? "<green>DROP " + Math.round(r.chance() * 100) + "% ×" + r.max() : "<dark_gray>non";
             inv.setItem(StudioItems.CONTENT_SLOTS[i], StudioItems.label(module.buildItem(def, 1).getType(),
                     "<aqua>" + def.id(), "<gray>statut: " + state,
-                    "<dark_gray>clic = on/off · clic droit = chance"));
+                    "<dark_gray>clic = on/off · clic droit = chance · shift = quantité"));
         }
         if (page > 0) inv.setItem(45, StudioItems.btn(Material.ARROW, "<yellow>Page précédente"));
         if (start + per < ids.size()) inv.setItem(53, StudioItems.btn(Material.ARROW, "<yellow>Page suivante"));
@@ -81,31 +82,42 @@ public final class BossDropMenu implements StudioMenu {
         if (itemIndex >= ids.size()) return;
         CustomItemDef def = module.rawDef(ids.get(itemIndex));
         if (def == null) return;
-        double cur = chanceOf(def);
-        if (rightClick) {
-            if (cur <= 0) setChance(module, def, CHANCES[0]); // active à la 1re chance
-            else setChance(module, def, nextChance(cur));
+        CustomItemDef.DropRule r = ruleOf(def);
+        if (shiftClick) {
+            if (r != null) setRule(module, def, r.chance(), nextAmount(r.max())); // cycle la quantité
+        } else if (rightClick) {
+            if (r == null) setRule(module, def, CHANCES[0], 1);                   // active à la 1re chance
+            else setRule(module, def, nextChance(r.chance()), r.max());           // cycle la chance
         } else {
-            setChance(module, def, cur > 0 ? 0 : 0.25); // toggle (défaut 25%)
+            if (r != null) setRule(module, def, 0, 1);                            // off
+            else setRule(module, def, 0.25, 1);                                   // on (défaut 25% ×1)
         }
         build();
     }
 
-    private double chanceOf(CustomItemDef def) {
+    private CustomItemDef.DropRule ruleOf(CustomItemDef def) {
         for (CustomItemDef.DropRule d : def.drops())
-            if (d.source().equalsIgnoreCase("boss:" + bossId)) return d.chance();
-        return -1;
+            if (d.source().equalsIgnoreCase("boss:" + bossId)) return d;
+        return null;
     }
 
-    private void setChance(CustomItemManagerModule module, CustomItemDef def, double chance) {
+    private void setRule(CustomItemManagerModule module, CustomItemDef def, double chance, int amount) {
         def.drops().removeIf(d -> d.source().equalsIgnoreCase("boss:" + bossId));
-        if (chance > 0) def.drops().add(new CustomItemDef.DropRule("boss:" + bossId, chance, 1, 1));
+        if (chance > 0) {
+            int a = Math.max(1, amount);
+            def.drops().add(new CustomItemDef.DropRule("boss:" + bossId, chance, a, a));
+        }
         module.put(def);
     }
 
     private static double nextChance(double cur) {
         for (double c : CHANCES) if (c > cur + 1e-6) return c;
         return CHANCES[0];
+    }
+
+    private static int nextAmount(int cur) {
+        for (int a : AMOUNTS) if (a > cur) return a;
+        return AMOUNTS[0];
     }
 
     private static int indexFor(int slot) {

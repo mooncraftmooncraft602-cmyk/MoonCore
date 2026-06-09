@@ -171,6 +171,14 @@ public final class BossManagerModule extends AbstractModule {
                     phases.add(new BossPhase(pkey, p.getDouble("from-percent", 100), abilities));
                 }
             }
+            Map<String, String> equipment = new java.util.LinkedHashMap<>();
+            ConfigurationSection eq = b.getConfigurationSection("equipment");
+            if (eq != null) {
+                for (String slot : eq.getKeys(false)) {
+                    String v = eq.getString(slot);
+                    if (v != null && !v.isBlank()) equipment.put(slot.toLowerCase(Locale.ROOT), v);
+                }
+            }
             return new BossDefinition(id,
                     b.getString("display-name", id),
                     type,
@@ -183,7 +191,8 @@ public final class BossManagerModule extends AbstractModule {
                     b.getLong("progression-xp", 0),
                     b.getString("bar-color", "PURPLE"),
                     emptyToNull(b.getString("texture-key", "")),
-                    b.getInt("texture-custom-model-data", textureModelData(id)));
+                    b.getInt("texture-custom-model-data", textureModelData(id)),
+                    equipment);
         } catch (IllegalArgumentException e) {
             log().warn("Boss invalide ignoré : " + id + " (" + e.getMessage() + ")");
             return null;
@@ -238,6 +247,7 @@ public final class BossManagerModule extends AbstractModule {
         setAttr(entity, Attrs.MOVEMENT_SPEED, def.speed());
         if (def.armor() > 0) setAttr(entity, Attrs.ARMOR, def.armor());
         applyTextureCosmetic(entity, def);
+        applyEquipment(entity, def);
 
         BarColor color;
         try { color = BarColor.valueOf(def.barColor().toUpperCase(Locale.ROOT)); }
@@ -273,6 +283,39 @@ public final class BossManagerModule extends AbstractModule {
         }
         entity.getEquipment().setHelmet(hat);
         entity.getEquipment().setHelmetDropChance(0f);
+    }
+
+    /** Équipe le boss avec les objets configurés (custom:&lt;id&gt; ou Material vanilla), sans drop. */
+    private void applyEquipment(LivingEntity entity, BossDefinition def) {
+        org.bukkit.inventory.EntityEquipment eq = entity.getEquipment();
+        if (eq == null || def.equipment().isEmpty()) return;
+        for (Map.Entry<String, String> e : def.equipment().entrySet()) {
+            ItemStack item = resolveEquip(e.getValue());
+            if (item == null) continue;
+            switch (e.getKey()) {
+                case "helmet" -> { eq.setHelmet(item); eq.setHelmetDropChance(0f); }
+                case "chestplate" -> { eq.setChestplate(item); eq.setChestplateDropChance(0f); }
+                case "leggings" -> { eq.setLeggings(item); eq.setLeggingsDropChance(0f); }
+                case "boots" -> { eq.setBoots(item); eq.setBootsDropChance(0f); }
+                case "mainhand" -> { eq.setItemInMainHand(item); eq.setItemInMainHandDropChance(0f); }
+                case "offhand" -> { eq.setItemInOffHand(item); eq.setItemInOffHandDropChance(0f); }
+                default -> { }
+            }
+        }
+    }
+
+    /** Résout une référence d'équipement : {@code custom:<id>} (objet custom) ou un Material vanilla. */
+    private ItemStack resolveEquip(String ref) {
+        if (ref == null || ref.isBlank()) return null;
+        String r = ref.trim();
+        if (r.toLowerCase(Locale.ROOT).startsWith("custom:")) {
+            var ci = plugin().moduleManager().get(com.mooncore.modules.customitem.CustomItemManagerModule.class);
+            if (ci == null) return null;
+            var d = ci.rawDef(r.substring("custom:".length()).toLowerCase(Locale.ROOT));
+            return d == null ? null : ci.buildItem(d, 1);
+        }
+        Material m = Material.matchMaterial(r.toUpperCase(Locale.ROOT));
+        return m == null || !m.isItem() ? null : new ItemStack(m);
     }
 
     /**

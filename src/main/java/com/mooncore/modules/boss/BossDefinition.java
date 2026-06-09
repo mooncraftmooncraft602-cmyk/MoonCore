@@ -20,7 +20,8 @@ public record BossDefinition(
         long progressionXp,
         String barColor,
         String textureKey,
-        int textureCustomModelData) {
+        int textureCustomModelData,
+        java.util.Map<String, String> equipment) {
 
     public BossDefinition {
         if (phases == null || phases.isEmpty()) {
@@ -28,5 +29,6 @@ public record BossDefinition(
         }
         if (maxHealth <= 0) maxHealth = 100;
         if (textureKey != null && textureKey.isBlank()) textureKey = null;
+        if (equipment == null) equipment = java.util.Map.of();
     }
 }
