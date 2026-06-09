@@ -68,6 +68,10 @@ public final class MoonCore extends JavaPlugin {
         registerModules();
         moduleManager.enableAll();
 
+        // Commandes utilisables sans le préfixe /moon (ex. /ec, /heal, /warp…).
+        int standalone = com.mooncore.command.StandaloneCommands.registerAll(this, rootCommand);
+        logger.info("Commandes autonomes : " + standalone + " (utilisables sans /moon).");
+
         logger.info("MoonCore activé. Modules actifs : " + moduleManager.enableOrder().size());
     }
 
@@ -111,6 +115,20 @@ public final class MoonCore extends JavaPlugin {
         moduleManager.register(new com.mooncore.modules.admin.AdminToolsModule());
         moduleManager.register(new com.mooncore.modules.update.UpdateModule());
         moduleManager.register(new com.mooncore.modules.companion.CompanionModule());
+        // Modules « features de plugins » réintégrés (rétroportés depuis la ligne 1.21.11 ;
+        // API standard → compatibles 1.21.1). Remplacent EnderChest/Vanish/RTP/Sleep/ClearLag/Essentials…
+        moduleManager.register(new com.mooncore.modules.enderchest.EnderChestModule());
+        moduleManager.register(new com.mooncore.modules.vanish.VanishModule());
+        moduleManager.register(new com.mooncore.modules.rtp.RtpModule());
+        moduleManager.register(new com.mooncore.modules.sleep.OnePlayerSleepModule());
+        moduleManager.register(new com.mooncore.modules.clearlag.ClearLagModule());
+        moduleManager.register(new com.mooncore.modules.pvp.PvPManagerModule());
+        moduleManager.register(new com.mooncore.modules.playerheads.PlayerHeadsModule());
+        moduleManager.register(new com.mooncore.modules.essentials.EssentialsModule());
+        moduleManager.register(new com.mooncore.modules.messaging.MessagingModule());
+        moduleManager.register(new com.mooncore.modules.warp.WarpModule());
+        moduleManager.register(new com.mooncore.modules.kit.KitModule());
+        moduleManager.register(new com.mooncore.modules.integrations.IntegrationsModule());
     }
 
     private void setupCommands() {

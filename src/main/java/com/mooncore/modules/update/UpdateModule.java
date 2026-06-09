@@ -36,7 +36,9 @@ public final class UpdateModule extends AbstractModule implements Listener {
     @Override
     protected void onEnable() {
         loadConfig();
-        if (!enabled) { log().info("[AutoUpdate] Désactivé par config."); return; }
+        // /moon plugins reinstall|check — toujours disponible (même si l'auto-check est off).
+        plugin().rootCommand().register(new com.mooncore.command.sub.PluginsSubCommand(this));
+        if (!enabled) { log().info("[AutoUpdate] Auto-check désactivé (commande /moon plugins toujours dispo)."); return; }
         registerListener(this);
         // Premier check après 5 s (laisse le serveur finir de démarrer).
         schedulers().async(() -> check(false));
@@ -113,7 +115,7 @@ public final class UpdateModule extends AbstractModule implements Listener {
         return null;
     }
 
-    private void downloadToUpdateFolder(HttpClient http, String url) throws Exception {
+    private java.io.File downloadToUpdateFolder(HttpClient http, String url) throws Exception {
         java.io.File updateDir = plugin().getServer().getUpdateFolderFile();
         if (!updateDir.exists()) updateDir.mkdirs();
         // Le fichier doit porter le MÊME nom que le jar en cours pour être appliqué.
@@ -123,6 +125,86 @@ public final class UpdateModule extends AbstractModule implements Listener {
                 HttpResponse.BodyHandlers.ofByteArray());
         if (r.statusCode() >= 400 || r.body().length < 1000) throw new Exception("téléchargement invalide (HTTP " + r.statusCode() + ")");
         Files.write(out.toPath(), r.body());
+        return out;
+    }
+
+    public String repo() { return repo; }
+
+    /**
+     * {@code /moon plugins reinstall} : télécharge la dernière release GitHub et l'applique.
+     * Le téléchargement (vers le dossier update/) est fiable ; le rechargement à chaud est
+     * tenté au mieux (souvent impossible sous Windows car le .jar chargé est verrouillé) — dans
+     * ce cas la mise à jour est appliquée AUTOMATIQUEMENT au prochain redémarrage.
+     */
+    public void reinstall(org.bukkit.command.CommandSender s) {
+        s.sendMessage(Text.mm("<gray>[Plugins] Téléchargement de la dernière version depuis <white>" + repo + "</white>…"));
+        schedulers().async(() -> {
+            try {
+                HttpClient http = HttpClient.newBuilder()
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .connectTimeout(Duration.ofSeconds(15)).build();
+                HttpRequest req = HttpRequest.newBuilder(URI.create("https://api.github.com/repos/" + repo + "/releases/latest"))
+                        .timeout(Duration.ofSeconds(20))
+                        .header("User-Agent", "MoonCore-Updater")
+                        .header("Accept", "application/vnd.github+json").GET().build();
+                HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+                if (resp.statusCode() >= 400) throw new Exception("GitHub HTTP " + resp.statusCode());
+                JsonObject root = JsonParser.parseString(resp.body()).getAsJsonObject();
+                String tag = root.has("tag_name") ? root.get("tag_name").getAsString() : "?";
+                String url = jarAssetUrl(root);
+                if (url == null) { sync(s, "<red>[Plugins] Release " + tag + " sans asset .jar."); return; }
+                java.io.File staged = downloadToUpdateFolder(http, url);
+                schedulers().sync(() -> applyStaged(s, staged, tag));
+            } catch (Exception e) {
+                sync(s, "<red>[Plugins] Échec : " + e.getMessage());
+            }
+        });
+    }
+
+    private void sync(org.bukkit.command.CommandSender s, String mm) {
+        schedulers().sync(() -> s.sendMessage(Text.mm(mm)));
+    }
+
+    private void applyStaged(org.bukkit.command.CommandSender s, java.io.File staged, String tag) {
+        pending = tag;
+        if (tryHotReload(staged)) {
+            s.sendMessage(Text.mm("<green>[Plugins] MoonCore <white>" + tag + "</white> réinstallé À CHAUD (sans redémarrage)."));
+        } else {
+            s.sendMessage(Text.mm("<yellow>[Plugins] <white>" + tag + "</white> téléchargé et mis en attente — "
+                    + "appliqué AUTOMATIQUEMENT au prochain redémarrage (hot-reload indisponible : jar verrouillé)."));
+        }
+    }
+
+    /** Rechargement à chaud best-effort (PlugMan-like). False si non supporté → appliqué au redémarrage. */
+    @SuppressWarnings({"unchecked", "removal", "deprecation"})
+    private boolean tryHotReload(java.io.File staged) {
+        org.bukkit.plugin.PluginManager pm = plugin().getServer().getPluginManager();
+        if (!(pm instanceof org.bukkit.plugin.SimplePluginManager spm) || staged == null || !staged.isFile()) return false;
+        org.bukkit.plugin.Plugin self = plugin();
+        try {
+            // Déréférence l'ancien plugin des registres internes (sinon loadPlugin refuse le doublon).
+            java.lang.reflect.Field fp = org.bukkit.plugin.SimplePluginManager.class.getDeclaredField("plugins");
+            java.lang.reflect.Field fl = org.bukkit.plugin.SimplePluginManager.class.getDeclaredField("lookupNames");
+            fp.setAccessible(true); fl.setAccessible(true);
+            java.util.List<org.bukkit.plugin.Plugin> plugins = (java.util.List<org.bukkit.plugin.Plugin>) fp.get(spm);
+            java.util.Map<String, org.bukkit.plugin.Plugin> lookup = (java.util.Map<String, org.bukkit.plugin.Plugin>) fl.get(spm);
+
+            pm.disablePlugin(self);
+            plugins.remove(self);
+            lookup.remove(self.getName());
+            lookup.remove(self.getName().toLowerCase(java.util.Locale.ROOT));
+
+            org.bukkit.plugin.Plugin np = pm.loadPlugin(staged); // charge depuis le jar (non verrouillé) du dossier update/
+            if (np == null) throw new IllegalStateException("loadPlugin a renvoyé null");
+            np.onLoad();
+            pm.enablePlugin(np);
+            return true;
+        } catch (Throwable t) {
+            log().warn("[Plugins] Hot-reload impossible (" + t + ") → sera appliqué au redémarrage.");
+            // Filet de sécurité : s'assurer que MoonCore reste actif si on l'avait désactivé.
+            try { if (!self.isEnabled()) pm.enablePlugin(self); } catch (Throwable ignored) { }
+            return false;
+        }
     }
 
     private void notify(String version, boolean downloaded) {

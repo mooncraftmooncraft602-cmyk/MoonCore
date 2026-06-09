@@ -1,0 +1,21 @@
+# Kits MoonCore — /kit (liste) · /kit <nom> (réclame)
+# cooldown-seconds : cooldown par défaut si non précisé dans un kit (86400 = 24 h).
+cooldown-seconds: 86400
+
+kits:
+  starter:
+    cooldown-seconds: 0          # réclamable une seule fois ? non : 0 = sans cooldown
+    permission: ""               # permission supplémentaire éventuelle (vide = tous)
+    items:
+      - "STONE_SWORD"
+      - "STONE_PICKAXE"
+      - "STONE_AXE"
+      - "BREAD 16"
+      - "OAK_LOG 16"
+      - "TORCH 16"
+  # Exemple avec un objet custom MoonCore (custom:<id>) :
+  # legend:
+  #   cooldown-seconds: 604800
+  #   items:
+  #     - "custom:epee_lune"
+  #     - "GOLDEN_APPLE 3"

@@ -7,9 +7,11 @@ description: "${project.description}"
 website: https://example.com
 load: STARTUP
 
-# Vault et PlaceholderAPI sont optionnels : MoonCore démarre sans eux,
-# mais EconomyBalancer et les placeholders se branchent dessus si présents.
-softdepend: [Vault, PlaceholderAPI]
+# MoonCore démarre SANS aucun de ces plugins, mais s'y branche s'ils sont présents
+# (« utiliser leur code éprouvé » plutôt que le réécrire). softdepend = chargé APRÈS eux.
+softdepend: [Vault, PlaceholderAPI, LuckPerms, WorldGuard, WorldEdit, FastAsyncWorldEdit,
+             CoreProtect, ProtocolLib, Geyser-Spigot, floodgate, Shopkeepers, GrimAC,
+             Essentials, TAB, SkinsRestorer]
 
 commands:
   moon:
@@ -39,6 +41,16 @@ permissions:
       mooncore.tpa.use: true
       mooncore.team.use: true
       mooncore.spawn.use: true
+      mooncore.ec.use: true
+      mooncore.rtp.use: true
+      mooncore.pvp.use: true
+      mooncore.hat.use: true
+      mooncore.near.use: true
+      mooncore.workbench.use: true
+      mooncore.back.use: true
+      mooncore.msg.use: true
+      mooncore.warp.use: true
+      mooncore.kit.use: true
 
   mooncore.admin:
     description: Accès administrateur (gestion in-game complète)
@@ -61,6 +73,16 @@ permissions:
       mooncore.admin.ai: true
       mooncore.admin.debug: true
       mooncore.admin.reload: true
+      mooncore.admin.plugins: true
+      mooncore.admin.enderchest: true
+      mooncore.vanish.use: true
+      mooncore.admin.clearlag: true
+      mooncore.heal.use: true
+      mooncore.feed.use: true
+      mooncore.fly.use: true
+      mooncore.god.use: true
+      mooncore.repair.use: true
+      mooncore.admin.warp: true
 
   # ----- Joueur (feuilles) -----
   mooncore.help: { default: true }
@@ -72,6 +94,16 @@ permissions:
   mooncore.tpa.use: { default: true }
   mooncore.team.use: { default: true }
   mooncore.spawn.use: { default: true }
+  mooncore.ec.use: { default: true }
+  mooncore.rtp.use: { default: true }
+  mooncore.pvp.use: { default: true }
+  mooncore.hat.use: { default: true }
+  mooncore.near.use: { default: true }
+  mooncore.workbench.use: { default: true }
+  mooncore.back.use: { default: true }
+  mooncore.msg.use: { default: true }
+  mooncore.warp.use: { default: true }
+  mooncore.kit.use: { default: true }
   mooncore.admin.spawn: { default: op }
 
   # ----- Admin (feuilles) -----
@@ -92,6 +124,17 @@ permissions:
   mooncore.admin.ai: { default: op }
   mooncore.admin.debug: { default: op }
   mooncore.admin.reload: { default: op }
+  mooncore.admin.plugins: { default: op }
+  mooncore.admin.enderchest: { default: op }
+  mooncore.vanish.use: { default: op }
+  mooncore.vanish.see: { default: op }
+  mooncore.admin.clearlag: { default: op }
+  mooncore.heal.use: { default: op }
+  mooncore.feed.use: { default: op }
+  mooncore.fly.use: { default: op }
+  mooncore.god.use: { default: op }
+  mooncore.repair.use: { default: op }
+  mooncore.admin.warp: { default: op }
 
   # ----- Bypass (staff de confiance) -----
   mooncore.bypass.antifarm: { default: false }
