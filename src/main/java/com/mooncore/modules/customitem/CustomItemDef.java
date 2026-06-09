@@ -96,6 +96,7 @@ public final class CustomItemDef implements CustomItemView {
     private Recipe recipe = null;
     private Material smeltsInto = null;          // null = ne fond pas (pas de recette de fournaise)
     private int smeltAmount = 1;
+    private final Map<String, Integer> enchants = new LinkedHashMap<>(); // clé registre → niveau
 
     public CustomItemDef(String id) {
         this.id = id.toLowerCase(Locale.ROOT);
@@ -160,6 +161,14 @@ public final class CustomItemDef implements CustomItemView {
     }
     public void clearSmelt() { this.smeltsInto = null; this.smeltAmount = 1; }
 
+    // ---- Enchantements vanilla (clé de registre minecraft, ex "sharpness" → niveau) ----
+    public Map<String, Integer> enchants() { return enchants; }
+    public void setEnchant(String key, int level) {
+        if (key == null || key.isBlank()) return;
+        if (level <= 0) enchants.remove(key.toLowerCase(Locale.ROOT));
+        else enchants.put(key.toLowerCase(Locale.ROOT), level);
+    }
+
     public void setStat(String key, double value) {
         stats.put(key.toLowerCase(Locale.ROOT), value);
     }
@@ -214,6 +223,7 @@ public final class CustomItemDef implements CustomItemView {
         }
         c.smeltsInto = this.smeltsInto;
         c.smeltAmount = this.smeltAmount;
+        c.enchants.putAll(this.enchants);
         return c;
     }
 
@@ -275,6 +285,13 @@ public final class CustomItemDef implements CustomItemView {
             s.set("smelt.amount", smeltAmount);
         } else {
             s.set("smelt", null);
+        }
+
+        if (!enchants.isEmpty()) {
+            ConfigurationSection encSec = s.createSection("enchants");
+            for (Map.Entry<String, Integer> e : enchants.entrySet()) encSec.set(e.getKey(), e.getValue());
+        } else {
+            s.set("enchants", null);
         }
     }
 
@@ -341,6 +358,11 @@ public final class CustomItemDef implements CustomItemView {
         if (sm != null) {
             Material rm = matchMaterial(sm.getString("result"));
             if (rm != null) d.setSmeltsInto(rm, sm.getInt("amount", 1));
+        }
+
+        ConfigurationSection encSec = s.getConfigurationSection("enchants");
+        if (encSec != null) {
+            for (String k : encSec.getKeys(false)) d.setEnchant(k, encSec.getInt(k));
         }
         return d;
     }

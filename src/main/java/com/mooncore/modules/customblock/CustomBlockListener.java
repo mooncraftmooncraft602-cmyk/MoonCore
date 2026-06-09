@@ -69,7 +69,9 @@ public final class CustomBlockListener implements Listener {
 
         BlockKey key = BlockKey.of(e.getBlock());
         if (def.breakDurability() > 1) {
-            int progress = breakProgress.merge(key, minePower(def, tool), Integer::sum);
+            Integer prev = breakProgress.get(key);
+            int progress = (prev == null ? 0 : prev) + minePower(def, tool);
+            breakProgress.put(key, progress);
             if (progress < def.breakDurability()) {
                 e.setCancelled(true);
                 e.getPlayer().sendActionBar(Text.mm("<yellow>Resistance du bloc : <white>"

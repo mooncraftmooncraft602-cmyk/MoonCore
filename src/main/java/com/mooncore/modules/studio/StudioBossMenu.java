@@ -170,6 +170,7 @@ public final class StudioBossMenu implements StudioMenu {
         return phases;
     }
 
+    @SafeVarargs
     private static Map<String, Object> phase(double from, Map<String, Object>... abilities) {
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("from-percent", from);
@@ -183,6 +184,7 @@ public final class StudioBossMenu implements StudioMenu {
         return a;
     }
 
+    @SafeVarargs
     static Map<String, Object> phaseForStudio(double from, Map<String, Object>... abilities) {
         return phase(from, abilities);
     }

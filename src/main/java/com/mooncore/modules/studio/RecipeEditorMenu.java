@@ -220,7 +220,8 @@ public final class RecipeEditorMenu implements InventoryHolder {
 
     private void save(Player p) {
         CustomItemManagerModule module = items();
-        CustomItemDef def = module == null ? null : module.rawDef(itemId);
+        if (module == null) return;
+        CustomItemDef def = module.rawDef(itemId);
         if (def == null) return;
         CustomItemDef.Recipe recipe = new CustomItemDef.Recipe();
         Map<String, Character> chars = new LinkedHashMap<>();
@@ -259,7 +260,8 @@ public final class RecipeEditorMenu implements InventoryHolder {
 
     private void clearRecipe(Player p) {
         CustomItemManagerModule module = items();
-        CustomItemDef def = module == null ? null : module.rawDef(itemId);
+        if (module == null) return;
+        CustomItemDef def = module.rawDef(itemId);
         if (def == null) return;
         def.setRecipe(null);
         module.put(def);

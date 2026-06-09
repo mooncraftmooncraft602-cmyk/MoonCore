@@ -79,6 +79,12 @@ public final class CustomItemFactory {
         // Attributs vanilla (s'appliquent serveur-side → identiques Java/Bedrock).
         applyAttributes(def, meta);
 
+        // Enchantements vanilla (Sharpness, Protection, Efficiency…).
+        for (Map.Entry<String, Integer> e : def.enchants().entrySet()) {
+            org.bukkit.enchantments.Enchantment ench = resolveEnchant(e.getKey());
+            if (ench != null) meta.addEnchant(ench, Math.max(1, e.getValue()), true);
+        }
+
         item.setItemMeta(meta);
         return item;
     }
@@ -169,6 +175,12 @@ public final class CustomItemFactory {
 
     private static Attribute matchAttribute(String name) {
         return com.mooncore.util.Attrs.byKey(name);
+    }
+
+    @SuppressWarnings("deprecation") // Registry.ENCHANTMENT.get : stable en 1.21.1 (RegistryAccess = plus lourd)
+    private static org.bukkit.enchantments.Enchantment resolveEnchant(String key) {
+        try { return org.bukkit.Registry.ENCHANTMENT.get(NamespacedKey.minecraft(key)); }
+        catch (Exception e) { return null; }
     }
 
     private static String typeLabel(CustomItemDef def) {

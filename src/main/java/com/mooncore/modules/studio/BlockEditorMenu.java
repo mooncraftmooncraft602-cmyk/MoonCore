@@ -3,7 +3,6 @@ package com.mooncore.modules.studio;
 import com.mooncore.MoonCore;
 import com.mooncore.modules.customblock.CustomBlockDef;
 import com.mooncore.modules.customblock.CustomBlockManagerModule;
-import com.mooncore.modules.customitem.CustomItemDefStore;
 import com.mooncore.modules.customitem.CustomItemManagerModule;
 import com.mooncore.modules.customitem.ToolKind;
 import com.mooncore.modules.customitem.ToolTier;
