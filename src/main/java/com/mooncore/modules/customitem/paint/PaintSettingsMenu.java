@@ -43,7 +43,6 @@ public final class PaintSettingsMenu implements InventoryHolder {
     private void build() {
         generatePage();
         for (int i = 0; i < PALETTE; i++) inv.setItem(i, swatch(paletteColors[i]));
-        ItemStack pane = btn(Material.GRAY_STAINED_GLASS_PANE, " ");
 
         // Rangée outils couleur (36..44).
         inv.setItem(36, btn(Material.PAINTING, "<aqua>Importer une texture", "<gray>vanilla/existant (ex deepslate_diamond_ore)"));

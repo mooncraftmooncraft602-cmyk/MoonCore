@@ -8,7 +8,6 @@ import com.mooncore.modules.customitem.CustomItemMenu;
 import com.mooncore.modules.customitem.ToolKind;
 import com.mooncore.modules.customitem.ToolTier;
 import com.mooncore.modules.customitem.editor.ItemEditorMenu;
-import com.mooncore.modules.customitem.paint.ItemPaintTarget;
 import com.mooncore.util.ChatInput;
 import com.mooncore.util.Text;
 import org.bukkit.Bukkit;

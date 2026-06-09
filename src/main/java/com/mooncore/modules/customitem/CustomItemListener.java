@@ -47,7 +47,14 @@ public final class CustomItemListener implements Listener {
         Player p = e.getPlayer();
         ItemStack item = p.getInventory().getItemInMainHand();
         CustomItemDef def = defOf(item);
-        if (def == null || def.abilities().isEmpty()) return;
+        if (def == null) return;
+
+        // Consommable custom (potion/nourriture) : applique les effets puis consomme 1 exemplaire.
+        if (def.type() == com.mooncore.api.customitem.ItemType.CONSUMABLE && !def.consumeEffects().isEmpty()) {
+            consume(e, p, item, def);
+            return;
+        }
+        if (def.abilities().isEmpty()) return;
 
         double cdr = stat(def, ItemStats.COOLDOWN_REDUCTION);
         boolean any = false;
@@ -75,6 +82,24 @@ public final class CustomItemListener implements Listener {
             // Empêche l'ouverture/placement parasite quand l'objet sert de focus magique.
             // (On ne cancel pas pour les outils/armes afin de garder le comportement vanilla.)
         }
+    }
+
+    /** Consomme un objet « consommable » : applique ses effets de potion et retire 1 exemplaire. */
+    private void consume(PlayerInteractEvent e, Player p, ItemStack item, CustomItemDef def) {
+        long now = System.currentTimeMillis();
+        String key = p.getUniqueId() + ":consume:" + def.id();
+        if (module.abilityCooldowns().remaining(key, now, 500) > 0) return; // anti-spam 0,5 s
+        module.abilityCooldowns().tryAcquire(key, now, 500);
+        for (CustomItemDef.ConsumeEffect ce : def.consumeEffects()) {
+            var type = org.bukkit.Registry.EFFECT.get(NamespacedKey.minecraft(ce.key()));
+            if (type != null) {
+                p.addPotionEffect(new org.bukkit.potion.PotionEffect(type, ce.duration(), Math.max(0, ce.amplifier()), true, true));
+            }
+        }
+        if (item.getAmount() <= 1) p.getInventory().setItemInMainHand(null);
+        else item.setAmount(item.getAmount() - 1);
+        p.getWorld().playSound(p.getLocation(), "minecraft:entity.generic.drink", 1f, 1f);
+        e.setCancelled(true);
     }
 
     // ============================================================

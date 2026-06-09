@@ -149,14 +149,14 @@ public final class StudioMobMenu implements StudioMenu {
 
     private static Map<String, Object> simplePhases(String preset) {
         Map<String, Object> phases = new LinkedHashMap<>();
-        phases.put("p1", StudioBossMenu.phaseForStudio(100, StudioBossMenu.abilityForStudio("AOE_DAMAGE", 180, 3, 1, 4)));
+        phases.put("p1", StudioBossMenu.phaseForStudio(100, List.of(StudioBossMenu.abilityForStudio("AOE_DAMAGE", 180, 3, 1, 4))));
         switch (preset) {
-            case "fast" -> phases.put("p2", StudioBossMenu.phaseForStudio(45, StudioBossMenu.abilityForStudio("DASH", 100, 1.5, 1, 12)));
-            case "elite" -> phases.put("p2", StudioBossMenu.phaseForStudio(55,
+            case "fast" -> phases.put("p2", StudioBossMenu.phaseForStudio(45, List.of(StudioBossMenu.abilityForStudio("DASH", 100, 1.5, 1, 12))));
+            case "elite" -> phases.put("p2", StudioBossMenu.phaseForStudio(55, List.of(
                     StudioBossMenu.abilityForStudio("SHIELD", 180, 80, 1, 6),
-                    StudioBossMenu.abilityForStudio("HEAL", 220, 12, 1, 6)));
-            case "archer" -> phases.put("p2", StudioBossMenu.phaseForStudio(50, StudioBossMenu.abilityForStudio("POISON", 160, 60, 1, 7)));
-            default -> phases.put("p2", StudioBossMenu.phaseForStudio(50, StudioBossMenu.abilityForStudio("DASH", 160, 1.0, 1, 8)));
+                    StudioBossMenu.abilityForStudio("HEAL", 220, 12, 1, 6))));
+            case "archer" -> phases.put("p2", StudioBossMenu.phaseForStudio(50, List.of(StudioBossMenu.abilityForStudio("POISON", 160, 60, 1, 7))));
+            default -> phases.put("p2", StudioBossMenu.phaseForStudio(50, List.of(StudioBossMenu.abilityForStudio("DASH", 160, 1.0, 1, 8))));
         }
         return phases;
     }

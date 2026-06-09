@@ -94,7 +94,7 @@ public final class StudioTextureMenu implements StudioMenu {
         }
         CustomBlockManagerModule cb = plugin.moduleManager().get(CustomBlockManagerModule.class);
         String blockId = cb == null ? null : cb.idFromItem(hand);
-        if (blockId != null && cb.rawDef(blockId) != null) {
+        if (cb != null && blockId != null && cb.rawDef(blockId) != null) {
             p.closeInventory();
             ci.paintManager().open(p, new BlockPaintTarget(cb, blockId), 16, null, () -> {
                 if (p.isOnline()) open(plugin, chat, p);

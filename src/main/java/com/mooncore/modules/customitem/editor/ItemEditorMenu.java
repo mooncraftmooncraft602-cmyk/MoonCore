@@ -67,6 +67,8 @@ public final class ItemEditorMenu implements InventoryHolder {
                 "<gray>clic droit = tier (bois, fer, diamant...)",
                 "<dark_gray>change aussi le materiau vanilla"));
 
+        inv.setItem(27, btn(Material.POTION, "<gold>Effets (consommable)", "<gray>" + d.consumeEffects().size() + " effet(s)",
+                "<dark_gray>actif si type = consumable · clic = éditer"));
         inv.setItem(28, btn(Material.ENCHANTING_TABLE, "<gold>Enchantements", "<gray>" + d.enchants().size() + " actif(s)", "<dark_gray>clic = éditer (Sharpness, Protection…)"));
         inv.setItem(29, btn(Material.ANVIL, "<gold>Stats", "<gray>" + d.stats().size() + " active(s)", "<dark_gray>clic = éditer"));
         inv.setItem(30, btn(Material.ENCHANTED_BOOK, "<gold>Capacités", "<gray>" + d.abilities().size(), "<dark_gray>clic = éditer"));
@@ -106,6 +108,7 @@ public final class ItemEditorMenu implements InventoryHolder {
                 module.put(d);
                 refresh();
             }
+            case 27 -> ConsumableEditorMenu.open(module, chat, p, id);
             case 28 -> EnchantEditorMenu.open(module, chat, p, id);
             case 29 -> StatEditorMenu.open(module, chat, p, id);
             case 30 -> AbilityEditorMenu.open(module, chat, p, id);

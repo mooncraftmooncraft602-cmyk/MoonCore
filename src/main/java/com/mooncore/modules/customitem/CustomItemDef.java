@@ -26,6 +26,9 @@ public final class CustomItemDef implements CustomItemView {
     /** Règle de drop : source = "boss:<id>" | "mob:<ENTITY_TYPE>" | "event:<id>". */
     public record DropRule(String source, double chance, int min, int max) {}
 
+    /** Effet appliqué à la consommation (clic droit) : clé de registre + durée(ticks) + amplificateur(0-based). */
+    public record ConsumeEffect(String key, int duration, int amplifier) {}
+
     /** Ingredient de recette : material vanilla ou item custom exact. */
     public record RecipeIngredient(Material material, String customItemId) {
         public RecipeIngredient {
@@ -97,6 +100,7 @@ public final class CustomItemDef implements CustomItemView {
     private Material smeltsInto = null;          // null = ne fond pas (pas de recette de fournaise)
     private int smeltAmount = 1;
     private final Map<String, Integer> enchants = new LinkedHashMap<>(); // clé registre → niveau
+    private final List<ConsumeEffect> consumeEffects = new ArrayList<>(); // effets à la consommation
 
     public CustomItemDef(String id) {
         this.id = id.toLowerCase(Locale.ROOT);
@@ -162,6 +166,14 @@ public final class CustomItemDef implements CustomItemView {
     public void clearSmelt() { this.smeltsInto = null; this.smeltAmount = 1; }
 
     // ---- Enchantements vanilla (clé de registre minecraft, ex "sharpness" → niveau) ----
+    public List<ConsumeEffect> consumeEffects() { return consumeEffects; }
+    /** Ajoute/maj/retire un effet de consommation ({@code duration<=0} = retire). */
+    public void setConsumeEffect(String key, int duration, int amplifier) {
+        if (key == null || key.isBlank()) return;
+        String k = key.toLowerCase(Locale.ROOT);
+        consumeEffects.removeIf(c -> c.key().equals(k));
+        if (duration > 0) consumeEffects.add(new ConsumeEffect(k, duration, Math.max(0, amplifier)));
+    }
     public Map<String, Integer> enchants() { return enchants; }
     public void setEnchant(String key, int level) {
         if (key == null || key.isBlank()) return;
@@ -224,6 +236,7 @@ public final class CustomItemDef implements CustomItemView {
         c.smeltsInto = this.smeltsInto;
         c.smeltAmount = this.smeltAmount;
         c.enchants.putAll(this.enchants);
+        c.consumeEffects.addAll(this.consumeEffects);
         return c;
     }
 
@@ -292,6 +305,20 @@ public final class CustomItemDef implements CustomItemView {
             for (Map.Entry<String, Integer> e : enchants.entrySet()) encSec.set(e.getKey(), e.getValue());
         } else {
             s.set("enchants", null);
+        }
+
+        if (!consumeEffects.isEmpty()) {
+            List<Map<String, Object>> ce = new ArrayList<>();
+            for (ConsumeEffect e : consumeEffects) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("key", e.key());
+                m.put("duration", e.duration());
+                m.put("amplifier", e.amplifier());
+                ce.add(m);
+            }
+            s.set("consume-effects", ce);
+        } else {
+            s.set("consume-effects", null);
         }
     }
 
@@ -363,6 +390,14 @@ public final class CustomItemDef implements CustomItemView {
         ConfigurationSection encSec = s.getConfigurationSection("enchants");
         if (encSec != null) {
             for (String k : encSec.getKeys(false)) d.setEnchant(k, encSec.getInt(k));
+        }
+
+        for (Map<?, ?> m : s.getMapList("consume-effects")) {
+            Object k = m.get("key");
+            if (k == null) continue;
+            int dur = m.get("duration") instanceof Number n ? n.intValue() : 100;
+            int amp = m.get("amplifier") instanceof Number n ? n.intValue() : 0;
+            d.consumeEffects.add(new ConsumeEffect(String.valueOf(k).toLowerCase(Locale.ROOT), dur, amp));
         }
         return d;
     }

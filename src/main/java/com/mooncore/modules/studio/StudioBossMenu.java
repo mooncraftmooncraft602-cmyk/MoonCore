@@ -147,34 +147,33 @@ public final class StudioBossMenu implements StudioMenu {
 
     static Map<String, Object> phases(String preset) {
         Map<String, Object> phases = new LinkedHashMap<>();
-        phases.put("p1", phase(100, ability("AOE_DAMAGE", 120, 5, 1, 5)));
+        phases.put("p1", phase(100, List.of(ability("AOE_DAMAGE", 120, 5, 1, 5))));
         switch (preset) {
             case "tank" -> {
-                phases.put("p2", phase(50, ability("SHIELD", 260, 100, 1, 8), ability("DASH", 100, 1.2, 1, 14)));
-                phases.put("p3", phase(25, ability("HEAL", 180, 35, 1, 8), ability("EXPLODE", 160, 3, 1, 7)));
+                phases.put("p2", phase(50, List.of(ability("SHIELD", 260, 100, 1, 8), ability("DASH", 100, 1.2, 1, 14))));
+                phases.put("p3", phase(25, List.of(ability("HEAL", 180, 35, 1, 8), ability("EXPLODE", 160, 3, 1, 7))));
             }
             case "mage" -> {
-                phases.put("p2", phase(60, ability("TELEPORT", 100, 1, 1, 18), ability("IGNITE", 130, 80, 1, 7)));
-                phases.put("p3", phase(25, ability("EXPLODE", 140, 4, 1, 8), ability("POISON", 120, 80, 1, 7)));
+                phases.put("p2", phase(60, List.of(ability("TELEPORT", 100, 1, 1, 18), ability("IGNITE", 130, 80, 1, 7))));
+                phases.put("p3", phase(25, List.of(ability("EXPLODE", 140, 4, 1, 8), ability("POISON", 120, 80, 1, 7))));
             }
             case "summoner" -> {
-                phases.put("p2", phase(60, ability("SUMMON", 160, 1, 4, 8), ability("AOE_DAMAGE", 130, 6, 1, 6)));
-                phases.put("p3", phase(25, ability("SUMMON", 110, 1, 6, 8), ability("HEAL", 220, 25, 1, 8)));
+                phases.put("p2", phase(60, List.of(ability("SUMMON", 160, 1, 4, 8), ability("AOE_DAMAGE", 130, 6, 1, 6))));
+                phases.put("p3", phase(25, List.of(ability("SUMMON", 110, 1, 6, 8), ability("HEAL", 220, 25, 1, 8))));
             }
             case "assassin" -> {
-                phases.put("p2", phase(60, ability("DASH", 70, 1.8, 1, 18), ability("TELEPORT", 100, 1, 1, 18)));
-                phases.put("p3", phase(25, ability("DASH", 45, 2.2, 1, 20), ability("POISON", 120, 80, 1, 6)));
+                phases.put("p2", phase(60, List.of(ability("DASH", 70, 1.8, 1, 18), ability("TELEPORT", 100, 1, 1, 18))));
+                phases.put("p3", phase(25, List.of(ability("DASH", 45, 2.2, 1, 20), ability("POISON", 120, 80, 1, 6))));
             }
-            default -> phases.put("p2", phase(50, ability("SUMMON", 180, 1, 2, 6)));
+            default -> phases.put("p2", phase(50, List.of(ability("SUMMON", 180, 1, 2, 6))));
         }
         return phases;
     }
 
-    @SafeVarargs
-    private static Map<String, Object> phase(double from, Map<String, Object>... abilities) {
+    private static Map<String, Object> phase(double from, List<Map<String, Object>> abilities) {
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("from-percent", from);
-        p.put("abilities", List.of(abilities));
+        p.put("abilities", abilities);
         return p;
     }
 
@@ -184,8 +183,7 @@ public final class StudioBossMenu implements StudioMenu {
         return a;
     }
 
-    @SafeVarargs
-    static Map<String, Object> phaseForStudio(double from, Map<String, Object>... abilities) {
+    static Map<String, Object> phaseForStudio(double from, List<Map<String, Object>> abilities) {
         return phase(from, abilities);
     }
 
